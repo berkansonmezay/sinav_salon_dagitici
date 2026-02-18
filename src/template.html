@@ -27,6 +27,11 @@
       <span class="step-num">4</span>
       <span class="step-label">Giriş Belgesi</span>
     </div>
+    <div class="step-connector" id="connector-4"></div>
+    <div class="step-indicator" id="step-indicator-5">
+      <span class="step-num">5</span>
+      <span class="step-label">Optik Form</span>
+    </div>
   </div>
 
   <main>
@@ -377,24 +382,83 @@
           </svg>
           Önceki Adım
         </button>
-        <button id="btn-restart" class="btn btn-outline btn-restart">
+        <div style="display: flex; gap: 0.5rem;">
+          <button id="btn-generate-entry-docs" class="btn btn-outline">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Giriş Belgeleri (PDF)
+          </button>
+          <button id="btn-to-step-5" class="btn btn-primary">
+            Sonraki: Optik Form
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== STEP 5: Optical Form ==================== -->
+    <section id="step-5" class="step-content card hidden">
+      <div class="card-header">
+        <h2>📝 Optik Form Oluştur</h2>
+        <p class="text-muted">Öğrenci bilgilerini içeren optik formları (cevap kağıdı) oluşturun.</p>
+      </div>
+
+      <div class="two-col-grid">
+        <label class="upload-area upload-area-compact" id="optical-type-lgs" for="opt-lgs-radio">
+          <div class="upload-icon">
+            <span style="font-size: 2rem;">📘</span>
+          </div>
+          <h3>LGS Sınavı</h3>
+          <p>Sözel ve Sayısal bölümler (4+2 ders)</p>
+          <input type="radio" name="optical-type" id="opt-lgs-radio" value="lgs" style="accent-color: var(--primary);">
+        </label>
+
+        <label class="upload-area upload-area-compact" id="optical-type-tyt" for="opt-tyt-radio">
+          <div class="upload-icon">
+            <span style="font-size: 2rem;">📙</span>
+          </div>
+          <h3>TYT / AYT Sınavı</h3>
+          <p>Temel Yeterlilik ve Alan Yeterlilik Testleri</p>
+          <input type="radio" name="optical-type" id="opt-tyt-radio" value="tyt" style="accent-color: var(--primary);">
+        </label>
+      </div>
+
+      <div class="info-bar" id="optical-info-bar" style="justify-content: center;">
+        <span class="text-muted">Lütfen bir sınav türü seçiniz.</span>
+      </div>
+
+      <div class="card-footer">
+        <button id="btn-back-to-step-4" class="btn btn-outline">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Önceki Adım
+        </button>
+        <button id="btn-restart" class="btn btn-outline" title="Baştan Başla">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2">
             <polyline points="23 4 23 10 17 10" />
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
           </svg>
-          Başa Dön
+          Baştan Başla
         </button>
-        <button id="btn-generate-entry-docs" class="btn btn-primary">
+        <button id="btn-generate-optical" class="btn btn-primary" disabled>
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
+            <circle cx="12" cy="14" r="2"></circle>
           </svg>
-          Giriş Belgelerini Oluştur (PDF)
+          Optik Formları Oluştur (PDF)
         </button>
       </div>
     </section>

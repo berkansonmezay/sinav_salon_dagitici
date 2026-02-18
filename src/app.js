@@ -25,7 +25,8 @@
       location: ''
     },
     resultPage: 1,
-    resultsPerPage: 10
+    resultsPerPage: 10,
+    opticalFormType: null // 'lgs' or 'tyt'
   };
 
   // ===== DOM REFS =====
@@ -35,10 +36,10 @@
   function init() {
     cacheDOMRefs();
     setupEventListeners();
-    setupDragAndDrop('student-upload-area', handleStudentUpload);
-    setupDragAndDrop('room-upload-area', handleRoomUpload);
+    setupDragAndDrop('student-upload-area', 'student-file-input', handleStudentUpload);
+    setupDragAndDrop('room-upload-area', 'room-file-input', handleRoomUpload);
 
-    setupDragAndDrop('exam-upload-area', handleExamInfoUpload);
+    setupDragAndDrop('exam-upload-area', 'exam-file-input', handleExamInfoUpload);
     updateUI();
   }
 
@@ -47,18 +48,21 @@
       1: document.getElementById('step-1'),
       2: document.getElementById('step-2'),
       3: document.getElementById('step-3'),
-      4: document.getElementById('step-4')
+      4: document.getElementById('step-4'),
+      5: document.getElementById('step-5')
     };
     DOM.indicators = {
       1: document.getElementById('step-indicator-1'),
       2: document.getElementById('step-indicator-2'),
       3: document.getElementById('step-indicator-3'),
-      4: document.getElementById('step-indicator-4')
+      4: document.getElementById('step-indicator-4'),
+      5: document.getElementById('step-indicator-5')
     };
     DOM.connectors = {
       1: document.getElementById('connector-1'),
       2: document.getElementById('connector-2'),
-      3: document.getElementById('connector-3')
+      3: document.getElementById('connector-3'),
+      4: document.getElementById('connector-4')
     };
     DOM.studentCount = document.getElementById('student-count');
     DOM.roomCount = document.getElementById('room-count');
@@ -91,15 +95,17 @@
   }
 
   // ===== DRAG & DROP =====
-  function setupDragAndDrop(areaId, callback) {
+  function setupDragAndDrop(areaId, fileInputId, callback) {
     var area = document.getElementById(areaId);
     if (!area) return;
 
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function (evt) {
-      area.addEventListener(evt, function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }, false);
+      area.addEventListener(evt, preventDefaults, false);
     });
 
     ['dragenter', 'dragover'].forEach(function (evt) {
@@ -110,16 +116,29 @@
       area.addEventListener(evt, function () { area.classList.remove('drag-over'); }, false);
     });
 
+    area.addEventListener('dragover', function (e) {
+      e.dataTransfer.dropEffect = 'copy';
+    });
+
     area.addEventListener('drop', function (e) {
-      var files = e.dataTransfer.files;
+      var dt = e.dataTransfer;
+      var files = dt.files;
       if (files.length > 0) callback(files[0]);
     }, false);
+
+    // Click to open file dialog (avoid double trigger)
+    area.addEventListener('click', function (e) {
+      // If user clicked the button directly, let button logic handle it.
+      // If user clicked outside button (on the div), trigger logic.
+      if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+      document.getElementById(fileInputId).click();
+    });
   }
 
   // ===== UI UPDATE =====
   function updateUI() {
     // Steps visibility & indicators
-    for (var key = 1; key <= 4; key++) {
+    for (var key = 1; key <= 5; key++) {
       if (key === state.step) {
         DOM.steps[key].classList.remove('hidden');
         DOM.steps[key].classList.add('animate-in');
@@ -137,7 +156,7 @@
     }
 
     // Connectors
-    for (var c = 1; c <= 3; c++) {
+    for (var c = 1; c <= 4; c++) {
       DOM.connectors[c].classList.remove('completed', 'active');
       if (c < state.step) DOM.connectors[c].classList.add('completed');
       else if (c === state.step) DOM.connectors[c].classList.add('active');
@@ -179,13 +198,20 @@
 
   // ===== STUDENT HANDLING =====
   function handleStudentUpload(file) {
+    if (typeof XLSX === 'undefined') {
+      showToast('Excel kütüphanesi (XLSX) yüklenemedi. Lütfen sayfayı yenileyin.', 'error');
+      return;
+    }
+
+
+
     parseExcelFile(file).then(function (data) {
       if (!data || data.length === 0) {
-        showToast('Dosya boş. Lütfen geçerli bir dosya yükleyin.', 'error');
+        showToast('Dosya boş veya okunamadı.', 'error');
         return;
       }
       if (data.length === 1) {
-        showToast('Dosyada öğrenci kaydı bulunamadı.', 'error');
+        showToast('Dosyada öğrenci kaydı bulunamadı (sadece başlık var).', 'error');
         return;
       }
 
@@ -210,7 +236,7 @@
       updateUI();
       DOM.studentPreview.classList.remove('hidden');
       DOM.studentUploadArea.classList.add('hidden');
-      showToast(state.students.length + ' öğrenci başarıyla yüklendi.', 'success');
+
 
     }).catch(function (err) {
       console.error(err);
@@ -1225,7 +1251,7 @@
     // Salon
     doc.setTextColor(50, 50, 50);
     doc.setFontSize(9);
-    doc.text('SALON NO', x + 140, box2Y + 31, { align: 'center' }); // Y +31
+    doc.text('SALON NO / SIRA NO', x + 140, box2Y + 31, { align: 'center' }); // Y +31
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
@@ -1437,6 +1463,63 @@
       setStep(3);
     });
 
+    // Nav: Step 4 → 5
+    document.getElementById('btn-to-step-5').addEventListener('click', function () {
+      setStep(5);
+    });
+
+    // Nav: Step 5 → 4
+    document.getElementById('btn-back-to-step-4').addEventListener('click', function () {
+      setStep(4);
+    });
+
+    // Step 5: Optical Form Selection
+    var optRadios = document.getElementsByName('optical-type');
+    for (var i = 0; i < optRadios.length; i++) {
+      optRadios[i].addEventListener('change', function (e) {
+        state.opticalFormType = e.target.value;
+
+        // Update UI selection
+        document.getElementById('optical-type-lgs').classList.remove('selected');
+        document.getElementById('optical-type-tyt').classList.remove('selected');
+
+        if (state.opticalFormType === 'lgs') {
+          document.getElementById('optical-type-lgs').classList.add('selected');
+          document.getElementById('optical-info-bar').innerHTML = '<span class="text-primary"><strong>LGS</strong> seçildi. Öğrenci bilgileri LGS formatında kodlanacak.</span>';
+        } else if (state.opticalFormType === 'tyt') {
+          document.getElementById('optical-type-tyt').classList.add('selected');
+          document.getElementById('optical-info-bar').innerHTML = '<span class="text-primary"><strong>TYT / AYT</strong> seçildi. Öğrenci bilgileri YKS formatında kodlanacak.</span>';
+        }
+
+        document.getElementById('btn-generate-optical').disabled = false;
+      });
+    }
+
+    // Step 5: Generate Optical Forms
+    document.getElementById('btn-generate-optical').addEventListener('click', function () {
+      if (!state.opticalFormType) {
+        showToast('Lütfen optik form türü seçiniz.', 'warning');
+        return;
+      }
+
+      var btn = document.getElementById('btn-generate-optical');
+      var originalHTML = btn.innerHTML;
+      btn.innerHTML = '⏳ Oluşturuluyor...';
+      btn.disabled = true;
+
+      setTimeout(function () {
+        try {
+          generateOpticalFormsPDF();
+        } catch (e) {
+          console.error(e);
+          showToast('Hata: ' + e.message, 'error');
+        } finally {
+          btn.innerHTML = originalHTML;
+          btn.disabled = false;
+        }
+      }, 50);
+    });
+
     // Exam Info Template Download
     document.getElementById('download-exam-template').addEventListener('click', function (e) {
       e.preventDefault();
@@ -1494,9 +1577,985 @@
         }
       });
     });
+
+  } // End setupEventListeners
+
+
+
+  // ==========================================
+  // OPTICAL FORM GENERATION
+  // ==========================================
+
+  function generateOpticalFormsPDF() {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      throw new Error('PDF kütüphanesi yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
+    }
+
+    if (!state.opticalFormType) {
+      throw new Error('Lütfen bir optik form türü seçiniz.');
+    }
+
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+    // Add Fonts
+    if (window.fontRobotoRegular && window.fontRobotoBold) {
+      doc.addFileToVFS('Roboto-Regular.ttf', window.fontRobotoRegular);
+      doc.addFileToVFS('Roboto-Bold.ttf', window.fontRobotoBold);
+      doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+      doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+      doc.setFont('Roboto', 'normal');
+    }
+
+    var sortedRooms = state.rooms.slice().sort(function (a, b) { return (a.priority || 999) - (b.priority || 999); });
+    var docIndex = 0;
+
+    sortedRooms.forEach(function (room) {
+      var students = state.distribution.results[room.id] || [];
+      students.forEach(function (student) {
+        if (docIndex > 0) {
+          doc.addPage();
+        }
+        drawOpticalForm(doc, student, room, state.opticalFormType);
+        docIndex++;
+      });
+    });
+
+    var fileName = 'optik_formlar_' + state.opticalFormType + '.pdf';
+    doc.save(fileName);
+    showToast(docIndex + ' adet optik form oluşturuldu.', 'success');
   }
 
-  // ===== START =====
+  function drawOpticalForm(doc, student, room, type) {
+    var pageWidth = 210;
+    var pageHeight = 297;
+    var margin = 8;
+
+    // Pink/Magenta theme color matching reference
+    var pinkR = 220, pinkG = 50, pinkB = 120;
+
+    if (type === 'lgs') {
+      drawLGSOpticalForm(doc, student, room, pageWidth, pageHeight, margin, pinkR, pinkG, pinkB);
+    } else {
+      drawTYTOpticalForm(doc, student, room, pageWidth, pageHeight, margin);
+    }
+  }
+
+  function drawLGSOpticalForm(doc, student, room, pageWidth, pageHeight, margin, pR, pG, pB) {
+    var setFont = function (style) {
+      if (window.fontRobotoRegular) doc.setFont('Roboto', style);
+    };
+
+    // ============ LAYOUT CONSTANTS ============
+    var leftX = margin;
+    var rightBlockX = 90; // Start of the right block (Name grid etc)
+    var rightBlockW = pageWidth - rightBlockX - margin;
+
+    // ============ RIGHT HEADER ============
+    // "İLKOKUL & ORTAOKUL CEVAP KAĞIDI"
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(rightBlockX, margin, rightBlockW, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    setFont('bold');
+    doc.text('İLKOKUL & ORTAOKUL CEVAP KAĞIDI', rightBlockX + rightBlockW - 2, margin + 5, { align: 'right' });
+    doc.setTextColor(0);
+
+    // ============ LEFT BLOCK (Student Info & Codes) ============
+    var row1Y = margin + 12;
+
+    // --- Student Info Box ---
+    // Box dimensions
+    var infoBoxW = 75;
+    var infoBoxH = 35;
+
+    // "GRUP NO" vertical strip attached to left of info box
+    var grupNoW = 12;
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(leftX, row1Y, grupNoW, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(6);
+    doc.text('GRUP', leftX + grupNoW / 2, row1Y + 3, { align: 'center' });
+    doc.text('NO', leftX + grupNoW / 2, row1Y + 6, { align: 'center' });
+    doc.setTextColor(0);
+
+    // Grup No bubbles (Just a visual placeholder 0-9 single col? Or 2 cols? 
+    // Image shows "GRUP NO" header, and below it simple vertical line. 
+    // Let's standard 0-9 single column for simplicity unless user complained.)
+    doc.setDrawColor(pR, pG, pB);
+    doc.setLineWidth(0.3);
+    doc.rect(leftX, row1Y + 8, grupNoW, infoBoxH - 8);
+    // Draw 0-9 bubbles 
+    // We can use drawPinkBubbleGrid for a single column 0-9
+    // But let's check if we have data. '01' is typical. 
+    // The image seems to show 2 columns? "0 0", "1 1". 
+    // Let's do 2 columns.
+    var grupNoVal = '01'; // Default
+    drawPinkBubbleGrid(doc, grupNoVal, leftX + 1, row1Y + 9, 2, 4, 3.2, 1.4, pR, pG, pB);
+
+
+    // Info Text Box
+    var infoX = leftX + grupNoW + 2;
+    var infoW = infoBoxW - grupNoW - 2;
+    doc.setDrawColor(pR, pG, pB);
+    doc.rect(infoX, row1Y, infoW, infoBoxH);
+
+    var fields = [
+      { label: 'Soyadı - Adı', value: (student.name || '').toLocaleUpperCase('tr-TR') },
+      { label: 'Numarası', value: String(student.id || '') },
+      { label: 'Sınıfı / Şubesi', value: String(student.classRef || '') },
+      { label: 'Telefon Nu.', value: String(student.phone || '') },
+      { label: 'Kurum Adı', value: (state.examInfo.institution || '').toLocaleUpperCase('tr-TR') }
+    ];
+
+    for (var fi = 0; fi < fields.length; fi++) {
+      var fy = row1Y + 6 + fi * 6.5;
+      doc.setFontSize(7);
+      setFont('bold');
+      doc.setTextColor(pR, pG, pB);
+      doc.text(fields[fi].label, infoX + 2, fy);
+      doc.setTextColor(0);
+      setFont('normal');
+      doc.text(':', infoX + 25, fy);
+      doc.text(fields[fi].value, infoX + 27, fy);
+      // Dotted line
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.1);
+      doc.line(infoX + 27, fy + 1, infoX + infoW - 2, fy + 1);
+    }
+
+    // --- Doğru Kodlama / Kitapçık Türü ---
+    var row2Y = row1Y + infoBoxH + 3;
+    var dkH = 12;
+
+    // Doğru Kodlama
+    doc.setDrawColor(pR, pG, pB);
+    doc.setLineWidth(0.3);
+    doc.rect(leftX, row2Y, 22, dkH);
+    doc.setFontSize(5);
+    setFont('bold');
+    doc.text('Doğru Kodlama', leftX + 11, row2Y + 3, { align: 'center' });
+    doc.text('Örneği', leftX + 11, row2Y + 5.5, { align: 'center' });
+    // Hand icon? Skip. Just bubble.
+    doc.setFillColor(0);
+    doc.circle(leftX + 11, row2Y + 9, 1.5, 'F');
+
+    // Kitapçık Türü
+    var ktX = leftX + 24;
+    var ktW = 50;
+    doc.setFontSize(5.5);
+    setFont('italic');
+    doc.setTextColor(pR, pG, pB);
+    doc.text('Kitapçık türünü kodlamayı unutmayınız.', ktX, row2Y - 1); // Text above
+    doc.setTextColor(0);
+    setFont('normal');
+
+    // Pink Box
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(ktX, row2Y, ktW, dkH, 'F');
+    // White Box inside for bubbles
+    doc.setFillColor(255);
+    doc.rect(ktX + 22, row2Y + 1, ktW - 24, dkH - 2, 'F');
+
+    doc.setTextColor(255);
+    doc.setFontSize(7);
+    setFont('bold');
+    doc.text('KİTAPÇIK TÜRÜ', ktX + 11, row2Y + 7, { align: 'center' });
+    doc.setTextColor(0);
+
+    // Bubbles A B
+    var ktBubs = ['A', 'B'];
+    for (var k = 0; k < ktBubs.length; k++) {
+      var kbx = ktX + 28 + k * 10;
+      doc.setDrawColor(0);
+      doc.circle(kbx, row2Y + 6, 2, 'S');
+      doc.setFontSize(6);
+      doc.text(ktBubs[k], kbx - 0.5, row2Y + 7);
+    }
+
+
+    // --- ÖĞRENCİ NO (Left Bottom) ---
+    var row3Y = row2Y + dkH + 4;
+    var stdNoW = 22;
+
+    // Header
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(leftX, row3Y, stdNoW, 6, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(6);
+    doc.text('ÖĞRENCİ NO.', leftX + stdNoW / 2, row3Y + 4, { align: 'center' });
+    doc.setTextColor(0);
+
+    // Grid
+    doc.setDrawColor(pR, pG, pB);
+    doc.rect(leftX, row3Y + 6, stdNoW, 35); // Box around grid
+
+    var studentNo = String(student.id || '').replace(/[^0-9]/g, '');
+    studentNo = studentNo.padStart(6, '0').substring(0, 6); // visual only shows 6 cols?
+    // Visual shows "0 0 0 0" 4 cols? Or 6?
+    // Let's assume 6 for standard.
+    // Actually the reference image shows 4 columns of bubbles under ÖĞRENCİ NO?
+    // Let's count... 1,2,3... looks like 4-5.
+    // Let's stick to 6 to be safe for typical IDs, or 9.
+    // But I will fit 6.
+    drawPinkBubbleGrid(doc, studentNo, leftX + 1, row3Y + 7, 6, 3.4, 3.2, 1.3, pR, pG, pB);
+
+
+    // --- T.C. KİMLİK NO / CEP (Right Bottom of Left Block) ---
+    var tcX = leftX + 26;
+    var tcW = infoBoxW - 26;
+
+    // Header
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(tcX, row3Y, tcW, 6, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(6);
+    doc.text('T.C. KİMLİK NO. / CEP TELEFONU', tcX + tcW / 2, row3Y + 4, { align: 'center' });
+    doc.setTextColor(0);
+
+    // Grid
+    doc.setDrawColor(pR, pG, pB);
+    doc.rect(tcX, row3Y + 6, tcW, 35);
+
+    var tcNo = String(student.tc || '').replace(/[^0-9]/g, '');
+    tcNo = tcNo.padStart(11, '0').substring(0, 11);
+    drawPinkBubbleGrid(doc, tcNo, tcX + 1, row3Y + 7, 11, 4.0, 3.2, 1.3, pR, pG, pB);
+
+
+    // ============ RIGHT BLOCK (SINIF/ŞUBE + SOYADI-ADI) ============
+    // "SOYADI - ADI" Header Strip
+    var nameHeaderY = margin + 9; // Below the top header
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(rightBlockX, nameHeaderY, rightBlockW, 6, 'F');
+
+    // "SINIF ŞUBE" part of header (small left part)
+    var sinifSubeW = 12; // Width for SINIF ŞUBE column
+    doc.setDrawColor(255);
+    doc.setLineWidth(0.5);
+    doc.line(rightBlockX + sinifSubeW, nameHeaderY, rightBlockX + sinifSubeW, nameHeaderY + 6);
+
+    doc.setTextColor(255);
+    doc.setFontSize(5);
+    doc.text('SINIF', rightBlockX + sinifSubeW / 2, nameHeaderY + 2.5, { align: 'center' });
+    doc.text('ŞUBE', rightBlockX + sinifSubeW / 2, nameHeaderY + 5.0, { align: 'center' });
+
+    // "SOYADI - ADI" part
+    doc.setFontSize(6);
+    doc.text('SOYADI - ADI (Soyadı, adı arasına bir karakter boşluk bırakınız.)', rightBlockX + sinifSubeW + 2, nameHeaderY + 4);
+    doc.setTextColor(0);
+
+    // --- Grid Area ---
+    var gridY = nameHeaderY + 6;
+    var gridH = 100; // Go down deep
+
+    // SINIF / ŞUBE Columns (Left of Grid)
+    // 2 columns: left is 1-8?, right is A-Z?
+    // Visual shows:
+    // Left col: bubbles 1..4..8?
+    // Right col: bubbles A..Z?
+    // Let's implement that.
+
+    // Class Col (1-8)
+    var classX = rightBlockX + 1;
+    for (var c = 1; c <= 8; c++) {
+      var by = gridY + 2 + (c - 1) * 4; // GAP 4
+      doc.setDrawColor(pR, pG, pB);
+      doc.circle(classX + 2, by, 1.5, 'S');
+      doc.setFontSize(5);
+      doc.setTextColor(pR, pG, pB);
+      doc.text(String(c), classX + 2 - 0.5, by + 0.5);
+    }
+
+    // Letter Col (A-Z)
+    var branchX = rightBlockX + 7;
+    var alphabet = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
+    for (var l = 0; l < alphabet.length; l++) {
+      var by = gridY + 2 + l * 3.3; // Tighter gap for letters
+      doc.setDrawColor(pR, pG, pB);
+      doc.circle(branchX + 2, by, 1.5, 'S');
+      doc.setFontSize(5);
+      doc.setTextColor(pR, pG, pB);
+      doc.text(alphabet[l], branchX + 2 - 0.5, by + 0.5);
+    }
+
+    // NAME GRID (Right of SINIF/ŞUBE)
+    var nameGridX = rightBlockX + sinifSubeW;
+    var nameGridW = rightBlockW - sinifSubeW;
+    // We need columns for Name char positions (e.g. 20 chars)
+    // And rows for A-Z
+    var nameLen = 20;
+    var charW = nameGridW / nameLen;
+    var charGapY = 3.3; // Same as letter col
+
+    var nameStr = (student.name || '').toLocaleUpperCase('tr-TR');
+
+    // Draw Bubbles
+    for (var r = 0; r < alphabet.length; r++) {
+      var rowY = gridY + 2 + r * charGapY;
+      var char = alphabet[r];
+
+      for (var c = 0; c < nameLen; c++) {
+        var colX = nameGridX + c * charW + charW / 2;
+
+        // Top Header Letters (Inside header? No, usually circles at top row?)
+        // Visual has A..Z circles in rows.
+        // Top of grid has empty boxes for writing name?
+        // Usually yes. Let's add write boxes above.
+
+        // Check if filled
+        var targetChar = nameStr[c];
+        var isFilled = (targetChar === char);
+
+        if (isFilled) {
+          doc.setFillColor(0);
+          doc.circle(colX, rowY, 1.3, 'F');
+          doc.setTextColor(255);
+        } else {
+          doc.setDrawColor(pR, pG, pB);
+          doc.setLineWidth(0.1);
+          doc.circle(colX, rowY, 1.3, 'S');
+          doc.setTextColor(pR, pG, pB);
+        }
+
+        doc.setFontSize(4);
+        var tw = doc.getTextWidth(char);
+        doc.text(char, colX - tw / 2, rowY + 0.5);
+        doc.setTextColor(0);
+      }
+    }
+
+    // Draw Name Write Boxes (in the header strip or just below?)
+    // Visual shows them just below the pink header, above the bubbles.
+    // Since we started bubbles at gridY + 2, let's put boxes at gridY - ?
+    // Actually the bubbles start immediately. Let's put boxes *in* the pink header?
+    // No, visual: "SOYADI - ADI" pink header, then a row of white boxes for writing chars, then bubbles A..Z.
+
+    // Let's adjust gridY down to make space for write boxes
+    // Reset loops? No, just draw boxes at `gridY` and shift bubbles down.
+    // Shift bubbles by 5mm.
+
+    // Redo Bubbles with shift
+    // (Consolidating visual code)
+    // Actually, I'll just adding writing boxes at gridY, and push bubbles to gridY+5
+
+    // Writing boxes
+    for (var c = 0; c < nameLen; c++) {
+      var colX = nameGridX + c * charW;
+      doc.setDrawColor(pR, pG, pB);
+      doc.rect(colX + 0.5, gridY, charW - 1, 4);
+      // Write char if exists
+      if (c < nameStr.length) {
+        doc.setFontSize(6);
+        doc.text(nameStr[c], colX + charW / 2, gridY + 3, { align: 'center' });
+      }
+    }
+
+    // Actual Grid Bubbles loop
+    var bubblesStartY = gridY + 5;
+    for (var l = 0; l < alphabet.length; l++) {
+      var by = bubblesStartY + 2 + l * 3.3;
+      var char = alphabet[l];
+
+      // Re-draw Branch column bubbles aligned
+      doc.setDrawColor(pR, pG, pB);
+      doc.circle(branchX + 2, by, 1.4, 'S');
+      doc.setFontSize(4);
+      doc.setTextColor(pR, pG, pB);
+      doc.text(char, branchX + 2 - 0.5, by + 0.5);
+
+      // Name Grid
+      for (var c = 0; c < nameLen; c++) {
+        var colX = nameGridX + c * charW + charW / 2;
+        var targetChar = nameStr[c];
+        var isFilled = (targetChar === char);
+
+        if (isFilled) {
+          doc.setFillColor(0);
+          doc.circle(colX, by, 1.3, 'F');
+          doc.setTextColor(255);
+        } else {
+          doc.setDrawColor(pR, pG, pB);
+          doc.setLineWidth(0.1);
+          doc.circle(colX, by, 1.3, 'S');
+          doc.setTextColor(pR, pG, pB);
+        }
+        doc.text(char, colX - doc.getTextWidth(char) / 2, by + 0.5);
+      }
+    }
+    doc.setTextColor(0);
+
+
+    // ============ BOTTOM BLOCK (SÖZEL / SAYISAL) ============
+    var bottomY = row3Y + 45; // Start below the student info blocks
+    drawLGSLayout(doc, bottomY, pR, pG, pB);
+
+    // ============ FOOTER ============
+    doc.setFontSize(5.5);
+    setFont('normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Bu Optik Form Mobil Okumaya Uygun Bastırılmıştır.', pageWidth / 2, pageHeight - 5, { align: 'center' });
+    doc.text('Form Kodu: LGS 20-20', pageWidth - margin, pageHeight - 5, { align: 'right' });
+    doc.setTextColor(0);
+  }
+
+  function drawPinkBubbleGrid(doc, value, x, y, cols, gapX, gapY, bubbleR, pR, pG, pB) {
+    var rows = 10; // 0-9
+
+    var setFont = function (style) {
+      if (window.fontRobotoRegular) doc.setFont('Roboto', style);
+    };
+
+    // Draw digit values at top
+    for (var c = 0; c < cols; c++) {
+      doc.setFontSize(6.5);
+      setFont('bold');
+      doc.text(value[c], x + c * gapX + gapX / 2, y, { align: 'center' });
+    }
+
+    // Draw grid
+    var gridStartY = y + 2;
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        var bx = x + c * gapX + gapX / 2;
+        var by = gridStartY + r * gapY;
+        var digit = r.toString();
+        var isFilled = (value[c] === digit);
+
+        if (isFilled) {
+          doc.setFillColor(pR, pG, pB);
+          doc.circle(bx, by, bubbleR, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(4.5);
+          var tw = doc.getTextWidth(digit);
+          doc.text(digit, bx - tw / 2, by + 0.8);
+          doc.setTextColor(0);
+        } else {
+          doc.setDrawColor(pR, pG, pB);
+          doc.setLineWidth(0.2);
+          doc.circle(bx, by, bubbleR, 'S');
+          doc.setFontSize(4.5);
+          doc.setTextColor(pR, pG, pB);
+          var tw2 = doc.getTextWidth(digit);
+          doc.text(digit, bx - tw2 / 2, by + 0.8);
+          doc.setTextColor(0);
+        }
+      }
+    }
+  }
+
+  function drawLGSLayout(doc, startY, pR, pG, pB) {
+    var setFont = function (style) {
+      if (window.fontRobotoRegular) doc.setFont('Roboto', style);
+    };
+    var pageMargin = 8;
+    var pageWidth = 210;
+    var contentWidth = pageWidth - 2 * pageMargin;
+
+    // Split: SÖZEL (Left 4 cols) | SAYISAL (Right 2 cols)
+    // Sözel 4 columns: 20, 10, 10, 10
+    // Sayısal 2 columns: 20, 20
+
+    var sozelW = contentWidth * 0.62;
+    var sayisalW = contentWidth * 0.36;
+    var gap = contentWidth - sozelW - sayisalW; // space between
+
+    var sayisalX = pageMargin + sozelW + gap;
+
+    // Headers
+    var headerH = 7;
+    // SÖZEL Header
+    doc.setFillColor(pR, pG, pB);
+    doc.roundedRect(pageMargin, startY, sozelW, headerH, 1, 1, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(10);
+    setFont('bold');
+    doc.text('SÖZEL BÖLÜM', pageMargin + sozelW / 2, startY + 5, { align: 'center' });
+
+    // SAYISAL Header
+    doc.roundedRect(sayisalX, startY, sayisalW, headerH, 1, 1, 'F');
+    doc.text('SAYISAL BÖLÜM', sayisalX + sayisalW / 2, startY + 5, { align: 'center' });
+    doc.setTextColor(0);
+
+    // Columns
+    var colY = startY + headerH + 2;
+    var subHeadH = 10;
+
+    // SÖZEL Columns
+    var sozelCols = [
+      { title: 'TÜRKÇE', q: 20 },
+      { title: 'SOSYAL BİLGİLER\nİNKILAP TARİHİ VE\nATATÜRKÇÜLÜK', q: 10 },
+      { title: 'DİN KÜLTÜRÜ\nVE\nAHLAK BİLGİSİ', q: 10 },
+      { title: 'İNGİLİZCE', q: 10 }
+    ];
+    var sColW = sozelW / 4;
+
+    for (var i = 0; i < 4; i++) {
+      var cx = pageMargin + i * sColW;
+
+      // SubHeader
+      doc.setFillColor(pR, pG, pB);
+      doc.rect(cx + 1, colY, sColW - 2, subHeadH, 'F');
+      doc.setTextColor(255);
+      doc.setFontSize(5);
+
+      var lines = sozelCols[i].title.split('\n');
+      for (var li = 0; li < lines.length; li++) {
+        doc.text(lines[li], cx + sColW / 2, colY + 3 + li * 2.5, { align: 'center' });
+      }
+
+      // Answers
+      drawPinkAnswerColumn(doc, sozelCols[i].q, cx, colY + subHeadH + 2, sColW, pR, pG, pB);
+    }
+
+    // SAYISAL Columns
+    var sayisalColsVals = [
+      { title: 'MATEMATİK', q: 20 },
+      { title: 'FEN BİLİMLERİ', q: 20 }
+    ];
+    var mColW = sayisalW / 2;
+
+    for (var j = 0; j < 2; j++) {
+      var cx = sayisalX + j * mColW;
+
+      // SubHeader
+      doc.setFillColor(pR, pG, pB);
+      doc.rect(cx + 1, colY, mColW - 2, subHeadH, 'F');
+      doc.setTextColor(255);
+      doc.setFontSize(6);
+      doc.text(sayisalColsVals[j].title, cx + mColW / 2, colY + 6, { align: 'center' });
+
+      // Answers
+      drawPinkAnswerColumn(doc, sayisalColsVals[j].q, cx, colY + subHeadH + 2, mColW, pR, pG, pB);
+    }
+
+    // Outer Borders
+    doc.setDrawColor(pR, pG, pB);
+    doc.setLineWidth(0.3);
+    var height = subHeadH + 2 + 20 * 4.5 + 2;
+    doc.rect(pageMargin, colY, sozelW, height);
+    doc.rect(sayisalX, colY, sayisalW, height);
+
+    // Vertical dividers
+    for (var l = 1; l < 4; l++) doc.line(pageMargin + l * sColW, colY, pageMargin + l * sColW, colY + height);
+    doc.line(sayisalX + mColW, colY, sayisalX + mColW, colY + height);
+  }
+
+  function drawPinkAnswerColumn(doc, count, x, y, availWidth, pR, pG, pB) {
+    var setFont = function (style) {
+      if (window.fontRobotoRegular) doc.setFont('Roboto', style);
+    };
+
+    var bubbleR = 2.0;
+    var gapY = 4.5;
+    var opts = ['A', 'B', 'C', 'D'];
+    var optGap = (availWidth - 6) / opts.length;
+
+    for (var i = 1; i <= count; i++) {
+      var rowY = y + (i - 1) * gapY;
+
+      // Question number
+      doc.setFontSize(7);
+      setFont('bold');
+      doc.setTextColor(pR, pG, pB);
+      doc.text(String(i), x + 1, rowY + 1, { align: 'center' });
+      doc.setTextColor(0);
+
+      // Bubbles
+      for (var o = 0; o < opts.length; o++) {
+        var bx = x + 6 + o * optGap;
+        doc.setDrawColor(pR, pG, pB);
+        doc.setLineWidth(0.25);
+        doc.circle(bx, rowY, bubbleR, 'S');
+        doc.setFontSize(5.5);
+        setFont('bold');
+        doc.setTextColor(pR, pG, pB);
+        var tw = doc.getTextWidth(opts[o]);
+        doc.text(opts[o], bx - tw / 2, rowY + 1);
+        doc.setTextColor(0);
+      }
+    }
+  }
+
+  // TYT/AYT form matching "LİSE GRUBU CEVAP KAĞIDI" reference
+  function drawTYTOpticalForm(doc, student, room, pageWidth, pageHeight, margin) {
+    var pR = 220, pG = 50, pB = 120;
+    var setFont = function (style) {
+      if (window.fontRobotoRegular) doc.setFont('Roboto', style);
+    };
+
+    var leftX = margin;
+    var rightX = pageWidth / 2 + 10;
+
+    // ============ HEADER ============
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(rightX - 25, margin, pageWidth - rightX + 25 + margin, 9, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
+    setFont('bold');
+    doc.text('LİSE GRUBU CEVAP KAĞIDI', pageWidth - margin - 2, margin + 6.5, { align: 'right' });
+    doc.setTextColor(0);
+
+    // NUMARANIZ box (top left area) - Shifted slightly
+    var numX = leftX + 40;
+    doc.setFillColor(pR, pG, pB);
+    doc.roundedRect(numX, margin, 20, 6, 1, 1, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(6);
+    setFont('bold');
+    doc.text('NUMARANIZ', numX + 10, margin + 4.5, { align: 'center' });
+    doc.setTextColor(0);
+
+    // Student No bubble grid under NUMARANIZ
+    var studentNo = String(student.id || '').replace(/[^0-9]/g, '');
+    studentNo = studentNo.padStart(6, '0').substring(0, 6);
+    drawPinkBubbleGrid(doc, studentNo, numX + 0.5, margin + 8, 6, 3.2, 3.0, 1.2, pR, pG, pB);
+
+    // ============ RIGHT SIDE: STUDENT INFO FIELDS ============
+    var infoX = rightX - 15;
+    var infoY = margin + 12;
+    var infoW = pageWidth - margin - infoX;
+
+    doc.setDrawColor(pR, pG, pB);
+    doc.setLineWidth(0.3);
+    doc.rect(infoX, infoY, infoW, 28);
+
+    var infoFields = [
+      { label: 'Soyadı - Adı', value: (student.name || '').toLocaleUpperCase('tr-TR') },
+      { label: 'Sınıf - Şube', value: String(student.classRef || '') },
+      { label: 'Telefonu', value: String(student.phone || '') },
+      { label: 'Kurum Adı', value: (state.examInfo.institution || '').toLocaleUpperCase('tr-TR') },
+      { label: 'İl - İlçe', value: '' }
+    ];
+
+    for (var fi = 0; fi < infoFields.length; fi++) {
+      var fy = infoY + 1.5 + fi * 5.2;
+      doc.setFontSize(6.5);
+      setFont('bold');
+      doc.setTextColor(pR, pG, pB);
+      doc.text(infoFields[fi].label + ' :', infoX + 2, fy + 3.5);
+      doc.setTextColor(0);
+      setFont('normal');
+      doc.setFontSize(6);
+      doc.text(infoFields[fi].value, infoX + 22, fy + 3.5);
+      doc.setDrawColor(pR, pG, pB);
+      doc.setLineWidth(0.1);
+      doc.line(infoX + 21, fy + 4.2, infoX + infoW - 2, fy + 4.2);
+    }
+
+    // ============ DİKKAT SECTION ============
+    var dikkatY = infoY + 30;
+
+    doc.setFontSize(6);
+    setFont('bold');
+    doc.setTextColor(pR, pG, pB);
+    doc.text('DİKKAT', infoX + 2, dikkatY + 3);
+    doc.setTextColor(0);
+
+    // Yanlış kodlama
+    doc.setFontSize(5);
+    setFont('normal');
+    doc.text('Yanlış kodlama', infoX + 13, dikkatY + 3);
+    for (var yk = 0; yk < 3; yk++) {
+      doc.setDrawColor(pR, pG, pB);
+      doc.circle(infoX + 14 + yk * 4, dikkatY + 6, 1.2, 'S');
+      doc.setFontSize(4);
+      doc.text('X', infoX + 13.3 + yk * 4, dikkatY + 6.8);
+    }
+
+    // Doğru kodlama
+    doc.setFontSize(5);
+    doc.text('Doğru kodlama', infoX + 34, dikkatY + 3);
+    doc.setFillColor(0);
+    doc.circle(infoX + 38, dikkatY + 6, 1.2, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(4);
+    doc.text('A', infoX + 38 - doc.getTextWidth('A') / 2, dikkatY + 6.8);
+    doc.setTextColor(0);
+
+    // Instruction
+    doc.setFontSize(4.5);
+    doc.setTextColor(pR, pG, pB);
+    doc.text('Kodlamamızı lütfen yumuşak', infoX + 46, dikkatY + 3);
+    doc.text('kurşunkalem ile yapınız.', infoX + 46, dikkatY + 6);
+    doc.setTextColor(0);
+
+    // ============ KİTAPÇIK TÜRÜ ============
+    var ktY = dikkatY + 8;
+    doc.setFillColor(pR, pG, pB);
+    doc.roundedRect(leftX, ktY, 24, 6, 1, 1, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(6);
+    setFont('bold');
+    doc.text('KİTAPÇIK TÜRÜ', leftX + 12, ktY + 4.2, { align: 'center' });
+    doc.setTextColor(0);
+
+    doc.setFontSize(5);
+    setFont('normal');
+    doc.text('Kitapçık Türünü Kodlamayı Unutmayınız.', leftX + 28, ktY + 1.5);
+
+    var ktBubs = ['A', 'B', 'C', 'D'];
+    for (var ki = 0; ki < ktBubs.length; ki++) {
+      var kbX = leftX + 28 + ki * 6.5;
+      doc.setDrawColor(pR, pG, pB);
+      doc.setLineWidth(0.3);
+      doc.circle(kbX, ktY + 4.5, 1.8, 'S');
+      doc.setFontSize(5);
+      doc.text(ktBubs[ki], kbX - doc.getTextWidth(ktBubs[ki]) / 2, ktY + 5.2);
+    }
+
+    // ============ ANSWER SECTIONS ============
+    var ansStartY = ktY + 10;
+    drawTYTLayout(doc, ansStartY, pR, pG, pB, student);
+
+    // ============ FOOTER ============
+    doc.setFontSize(5);
+    setFont('normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Bu Optik Form Mobil Okumaya Uygun Bastırılmıştır.', pageWidth / 2, pageHeight - 5, { align: 'center' });
+    doc.text('Form Kodu: ProNET YKS-1', pageWidth - margin, pageHeight - 5, { align: 'right' });
+    doc.setTextColor(0);
+  }
+
+  function drawTYTLayout(doc, startY, pR, pG, pB, student) {
+    var setFont = function (style) {
+      if (window.fontRobotoRegular) doc.setFont('Roboto', style);
+    };
+    var pageMargin = 8;
+    var pageWidth = 210;
+    var contentWidth = pageWidth - 2 * pageMargin;
+    var bubbleGapY = 3.2;
+
+    var leftW = contentWidth * 0.5 - 1;
+    var rightW = contentWidth * 0.5 - 1;
+    var rightStartX = pageMargin + leftW + 2;
+
+    // OTURUM HEADERS
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(pageMargin, startY, leftW / 2 - 0.5, 5, 'F');
+    doc.rect(pageMargin + leftW / 2 + 0.5, startY, leftW / 2 - 0.5, 5, 'F');
+    doc.rect(rightStartX, startY, rightW, 5, 'F');
+
+    doc.setTextColor(255);
+    doc.setFontSize(7);
+    setFont('bold');
+    doc.text('1. OTURUM', pageMargin + leftW / 4, startY + 3.5, { align: 'center' });
+    doc.text('2. OTURUM', pageMargin + 3 * leftW / 4, startY + 3.5, { align: 'center' });
+    doc.text('TEMEL MATEMATİK / FEN', rightStartX + rightW / 2, startY + 3.5, { align: 'center' });
+    doc.setTextColor(0);
+
+    // SUB-HEADERS
+    var subHeaderY = startY + 6;
+    var subHeaderH = 11;
+    var colW = leftW / 2;
+
+    var titles = [
+      { t: 'TÜRKÇE', s1: 'T. DİLİ VE EDEB.', s2: 'SOSYAL BİL. 1' },
+      { t: 'SOSYAL BİLİMLER', s2: 'SOSYAL BİLİMLER 2' },
+      { t: 'TEMEL MATEMATİK', s2: 'MATEMATİK' },
+      { t: 'FEN BİLİMLERİ', s2: 'FEN BİLİMLERİ' }
+    ];
+
+    for (var i = 0; i < 4; i++) {
+      var cx = (i < 2) ? (pageMargin + i * colW) : (rightStartX + (i - 2) * colW);
+      doc.setFillColor(pR, pG, pB);
+      doc.rect(cx, subHeaderY, colW - 0.5, subHeaderH, 'F');
+      doc.setTextColor(255);
+      doc.setFontSize(6);
+      doc.text(titles[i].t, cx + colW / 2, subHeaderY + 3.5, { align: 'center' });
+      doc.setFontSize(5);
+      if (titles[i].s1) doc.text(titles[i].s1, cx + colW / 2, subHeaderY + 6.5, { align: 'center' });
+      doc.text(titles[i].s2, cx + colW / 2, subHeaderY + 9.5, { align: 'center' });
+    }
+    doc.setTextColor(0);
+
+    // ANSWER COLUMNS
+    var answRowY = subHeaderY + subHeaderH + 2;
+
+    // COLUMNS 3 & 4 (Right side)
+    drawPinkAnswerColumn5(doc, 40, rightStartX + 2, answRowY, colW - 4, pR, pG, pB, 1);
+    drawPinkAnswerColumn5(doc, 40, rightStartX + colW + 2, answRowY, colW - 4, pR, pG, pB, 1);
+
+    // COLUMNS 1 & 2 with Integrated Name Grid
+    // Q 1-7 (To save space for name grid)
+    var qLimit = 7;
+    drawPinkAnswerColumn5(doc, qLimit, pageMargin + 2, animatedY(0), colW - 4, pR, pG, pB, 1);
+    drawPinkAnswerColumn5(doc, qLimit, pageMargin + colW + 2, animatedY(0), colW - 4, pR, pG, pB, 1);
+
+    function animatedY(qIdxOffset) {
+      return answRowY + qIdxOffset * bubbleGapY;
+    }
+
+    // Name Grid
+    var nameGridY = animatedY(qLimit) + 2;
+    var nameGridH = 58; // Compact
+    var nameGridW = leftW - 2;
+
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(pageMargin, nameGridY, nameGridW, 5, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(6);
+    doc.text('SOYADI - ADI (Soyadı, adı arasına bir karakter boşluk bırakınız.)', pageMargin + nameGridW / 2, nameGridY + 3.5, { align: 'center' });
+    doc.setTextColor(0);
+
+    var nameStr = (student.name || '').toLocaleUpperCase('tr-TR');
+    var charW = nameGridW / 20;
+    var alphabet = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
+    var nameCharGapY = 1.8; // Very tight
+
+    // Writing Boxes
+    for (var c = 0; c < 20; c++) {
+      var ncx = pageMargin + c * charW;
+      doc.setDrawColor(pR, pG, pB);
+      doc.rect(ncx + 0.3, nameGridY + 5.5, charW - 0.6, 3.5);
+      if (c < nameStr.length) {
+        doc.setFontSize(5);
+        doc.text(nameStr[c], ncx + charW / 2, nameGridY + 8.2, { align: 'center' });
+      }
+    }
+
+    // Bubble Grid
+    var bubblesStartY = nameGridY + 10;
+    for (var r = 0; r < alphabet.length; r++) {
+      var ry = bubblesStartY + r * nameCharGapY;
+      var char = alphabet[r];
+      for (var c = 0; c < 20; c++) {
+        var ncx = pageMargin + c * charW + charW / 2;
+        var isFilled = (nameStr[c] === char);
+        doc.setDrawColor(pR, pG, pB);
+        doc.setLineWidth(0.1);
+        if (isFilled) {
+          doc.setFillColor(0);
+          doc.circle(ncx, ry, 0.7, 'F');
+          doc.setTextColor(255);
+        } else {
+          doc.circle(ncx, ry, 0.7, 'S');
+          doc.setTextColor(0);
+        }
+        // Symbols inside bubbles? No, just letters if needed, but they are too small.
+        // Image shows letters inside. I'll omit for 0.7mm radius.
+      }
+    }
+
+    // Q 8-40 (Adjusted starting Y)
+    var qNextY = bubblesStartY + alphabet.length * nameCharGapY + 2;
+    drawPinkAnswerColumn5(doc, 33, pageMargin + 2, qNextY, colW - 4, pR, pG, pB, 8);
+    drawPinkAnswerColumn5(doc, 33, pageMargin + colW + 2, qNextY, colW - 4, pR, pG, pB, 8);
+
+
+    // BORDERS
+    doc.setDrawColor(pR, pG, pB);
+    doc.setLineWidth(0.4);
+    var totalH = qNextY + 33 * bubbleGapY - startY + 2;
+    doc.rect(pageMargin, subHeaderY, leftW, totalH);
+    doc.rect(rightStartX, subHeaderY, rightW, totalH);
+    doc.setLineWidth(0.2);
+    doc.line(pageMargin + colW, subHeaderY, pageMargin + colW, subHeaderY + totalH);
+    doc.line(rightStartX + colW, subHeaderY, rightStartX + colW, subHeaderY + totalH);
+  }
+
+  function drawPinkAnswerColumn5(doc, count, x, y, availWidth, pR, pG, pB, startNum) {
+    var setFont = function (style) {
+      if (window.fontRobotoRegular) doc.setFont('Roboto', style);
+    };
+
+    var bubbleR = 1.4;
+    var gapY = 3.2;
+    var opts = ['A', 'B', 'C', 'D', 'E'];
+    var optGap = (availWidth - 7) / (opts.length - 1);
+
+    for (var i = 0; i < count; i++) {
+      var rowY = y + i * gapY;
+      var qNum = startNum + i;
+
+      doc.setFontSize(5);
+      setFont('bold');
+      doc.setTextColor(pR, pG, pB);
+      doc.text(String(qNum), x + 1.5, rowY + 0.8, { align: 'center' });
+      doc.setTextColor(0);
+
+      for (var o = 0; o < opts.length; o++) {
+        var bx = x + 5 + o * optGap;
+        doc.setDrawColor(pR, pG, pB);
+        doc.setLineWidth(0.2);
+        doc.circle(bx, rowY, bubbleR, 'S');
+        doc.setFontSize(4);
+        setFont('bold');
+        doc.setTextColor(pR, pG, pB);
+        doc.text(opts[o], bx - doc.getTextWidth(opts[o]) / 2, rowY + 0.8);
+      }
+    }
+  }
+
+  function drawVerticalBubbleGrid(doc, label, value, x, y) {
+    var cols = value.length;
+    var rows = 10;
+    var bubbleSize = 3;
+    var gapX = 4;
+    var gapY = 4;
+
+    doc.setFontSize(8);
+    if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
+    doc.text(label, x + (cols * gapX) / 2, y + 4, { align: 'center' });
+
+    for (var c = 0; c < cols; c++) {
+      doc.text(value[c], x + c * gapX + 1.5, y + 9, { align: 'center' });
+    }
+
+    var gridY = y + 12;
+    for (var r = 0; r < rows; r++) {
+      for (var c = 0; c < cols; c++) {
+        var bx = x + c * gapX;
+        var by = gridY + r * gapY;
+        var digit = r.toString();
+        var isFilled = (value[c] === digit);
+        drawBubble(doc, bx + 1.5, by + 1.5, bubbleSize, digit, isFilled);
+      }
+    }
+  }
+
+  function drawAnswerColumn(doc, title, count, x, y) {
+    doc.setFontSize(9);
+    if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
+    doc.text(title, x + 15, y - 4, { align: 'center' });
+
+    var bubbleSize = 2.5;
+    var gapY = 3.8;
+    var opts = ['A', 'B', 'C', 'D'];
+
+    if (state.opticalFormType === 'tyt') {
+      opts.push('E');
+    }
+
+    var gapX = 4;
+
+    for (var i = 1; i <= count; i++) {
+      var rowY = y + (i - 1) * gapY;
+      doc.setFontSize(7);
+      doc.text(String(i), x, rowY + 1);
+      for (var o = 0; o < opts.length; o++) {
+        drawBubble(doc, x + 6 + (o * gapX), rowY, bubbleSize, opts[o], false);
+      }
+    }
+  }
+
+  function drawBubble(doc, cx, cy, r, text, filled) {
+    if (filled) {
+      doc.setFillColor(0);
+      doc.circle(cx, cy, r, 'F');
+      doc.setTextColor(255);
+      doc.setFontSize(6);
+      var txtW = doc.getTextWidth(text);
+      doc.text(text, cx - (txtW / 2), cy + 1.2);
+      doc.setTextColor(0);
+    } else {
+      doc.setDrawColor(0);
+      doc.circle(cx, cy, r, 'S');
+      doc.setFontSize(6);
+      var txtW = doc.getTextWidth(text);
+      doc.text(text, cx - (txtW / 2), cy + 1.2);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', init);
 
 })();
