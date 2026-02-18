@@ -2984,24 +2984,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     // Exam Name removed from top header as requested
 
     // --- Box 1: Student Info ---
-    var box1Y = headerEnd + 15;
+    var box1Y = headerEnd + 8; // Reduced gap (was 15)
 
     // Header (Purple Gradient-ish)
     doc.setFillColor(83, 109, 254); // Indigo/Purple
-    doc.roundedRect(x, box1Y, width, 8, 2, 2, 'F');
+    doc.roundedRect(x, box1Y, width, 12, 2, 2, 'F'); // Height increased to 12
 
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
+    doc.setFontSize(14); // Font increased to 14
 
     if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
     else doc.setFont(undefined, 'bold');
 
-    doc.text('ÖĞRENCİ BİLGİLERİ', 105, box1Y + 5.5, { align: 'center' });
+    doc.text('ÖĞRENCİ BİLGİLERİ', 105, box1Y + 8, { align: 'center' }); // Y adjusted
 
     // Body (White with border)
     doc.setDrawColor(200, 200, 200); // Light grey border
     doc.setFillColor(255, 255, 255); // White bg
-    doc.roundedRect(x, box1Y + 8, width, 24, 2, 2, 'FD');
+    doc.roundedRect(x, box1Y + 12, width, 24, 2, 2, 'FD'); // Start Y +12
 
     doc.setFontSize(10);
 
@@ -3021,79 +3021,78 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     }
 
     // Row 1
-    drawField('Adı ve Soyadı:', student.name.toLocaleUpperCase('tr-TR'), x + 5, box1Y + 14);
-    drawField('Sınıf:', String(student.classRef).toLocaleUpperCase('tr-TR'), x + 120, box1Y + 14);
+    drawField('Adı ve Soyadı:', student.name.toLocaleUpperCase('tr-TR'), x + 5, box1Y + 18); // Check Y: 12 + 6 = 18
+    drawField('Sınıf:', String(student.classRef).toLocaleUpperCase('tr-TR'), x + 120, box1Y + 18);
 
     // Row 2
-    drawField('TC Kimlik No:', String(student.tc), x + 5, box1Y + 20);
-    drawField('Telefon:', String(student.phone), x + 120, box1Y + 20);
+    drawField('TC Kimlik No:', String(student.tc), x + 5, box1Y + 24); // 18 + 6 = 24
+    drawField('Telefon:', String(student.phone), x + 120, box1Y + 24);
 
     // Row 3
     // drawField('Okul:', (state.examInfo.institution || '-').toLocaleUpperCase('tr-TR'), x + 5, box1Y + 26);
 
     // --- Box 2: Exam Info ---
-    var box2Y = box1Y + 38; // Increased gap
+    var box2Y = box1Y + 42; // Increased gap (was 38)
 
     // Header (Pink/Red)
     doc.setFillColor(255, 64, 129); // Pink
-    doc.roundedRect(x, box2Y, width, 8, 2, 2, 'F');
+    doc.roundedRect(x, box2Y, width, 12, 2, 2, 'F'); // Height 12
 
     doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14); // Font 14
+
     if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
     else doc.setFont(undefined, 'bold');
 
-    doc.text('SINAV GİRİŞ BİLGİLERİ', 105, box2Y + 5.5, { align: 'center' });
+    doc.text('SINAV GİRİŞ BİLGİLERİ', 105, box2Y + 8, { align: 'center' }); // Y adjusted
 
     // Body Box
     doc.setDrawColor(200, 200, 200);
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(x, box2Y + 8, width, 50, 2, 2, 'S'); // Outline only, white bg implied
+    doc.roundedRect(x, box2Y + 12, width, 50, 2, 2, 'S'); // Start Y +12
 
-    // 1. Exam Name Strip (Light Blue, Rounded)
-    doc.setFillColor(225, 245, 254); // Light Blue
-    doc.roundedRect(x + 2, box2Y + 10, width - 4, 10, 2, 2, 'F');
+    // 1. Exam Name Strip 
+    doc.setFillColor(225, 245, 254);
+    doc.roundedRect(x + 2, box2Y + 14, width - 4, 10, 2, 2, 'F'); // Y +14
 
     doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11); // Reset font for content
     if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
-    doc.text((state.examInfo.name || '').toLocaleUpperCase('tr-TR'), 105, box2Y + 16.5, { align: 'center' });
+    doc.text((state.examInfo.name || '').toLocaleUpperCase('tr-TR'), 105, box2Y + 20.5, { align: 'center' }); // Y +20.5
 
-    // 2. Time & Salon Strip (Peach/Orange, Rounded)
-    doc.setFillColor(255, 224, 178); // Peach
-    doc.roundedRect(x + 2, box2Y + 22, width - 4, 16, 2, 2, 'F');
-
-    // Vertical Separator Line (Simulated)
-    // doc.setDrawColor(255, 255, 255);
-    // doc.line(105, box2Y + 22, 105, box2Y + 38);
+    // 2. Time & Salon Strip
+    doc.setFillColor(255, 224, 178);
+    doc.roundedRect(x + 2, box2Y + 26, width - 4, 16, 2, 2, 'F'); // Y +26
 
     // Time
     doc.setTextColor(50, 50, 50);
     doc.setFontSize(9);
     if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
-    doc.text('SINAV SAATİ', x + 50, box2Y + 27, { align: 'center' });
+    doc.text('SINAV SAATİ', x + 50, box2Y + 31, { align: 'center' }); // Y +31
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
-    doc.text((state.examInfo.time || '--:--'), x + 50, box2Y + 34, { align: 'center' });
+    doc.text((state.examInfo.time || '--:--'), x + 50, box2Y + 38, { align: 'center' }); // Y +38
 
     // Salon
     doc.setTextColor(50, 50, 50);
     doc.setFontSize(9);
-    doc.text('SALON NO', x + 140, box2Y + 27, { align: 'center' });
+    doc.text('SALON NO', x + 140, box2Y + 31, { align: 'center' }); // Y +31
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
-    doc.text(room.name.toLocaleUpperCase('tr-TR') + ' / ' + seatNo, x + 140, box2Y + 34, { align: 'center' });
+    doc.text(room.name.toLocaleUpperCase('tr-TR') + ' / ' + seatNo, x + 140, box2Y + 38, { align: 'center' }); // Y +38
 
     // 3. Footer Info (White area)
     doc.setFontSize(10);
 
     // Row 1
     var dateStr = state.examInfo.date || '';
-    drawField('Sınav Tarihi:', formatDateTR(dateStr), x + 10, box2Y + 45);
-    drawField('Sınav Yeri:', (state.examInfo.institution || '').toLocaleUpperCase('tr-TR'), x + 100, box2Y + 45);
+    drawField('Sınav Tarihi:', formatDateTR(dateStr), x + 10, box2Y + 49); // Y +49
+    drawField('Sınav Yeri:', (state.examInfo.institution || '').toLocaleUpperCase('tr-TR'), x + 100, box2Y + 49); // Y +49
 
     // Row 2
-    drawField('Adres:', (state.examInfo.location || '').toLocaleUpperCase('tr-TR'), x + 10, box2Y + 52);
+    drawField('Adres:', (state.examInfo.location || '').toLocaleUpperCase('tr-TR'), x + 10, box2Y + 56); // Y +56
 
     // Dashed separator line if top
     if (y < 100) {
