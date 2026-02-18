@@ -14,7 +14,9 @@
     distribution: null,
     editingRoomId: null,
     studentPage: 1,
-    studentsPerPage: 25
+    studentsPerPage: 25,
+    roomPage: 1,
+    roomsPerPage: 15
   };
 
   // ===== DOM REFS =====
@@ -366,7 +368,21 @@
     tbody.innerHTML = '';
     state.rooms.sort(function (a, b) { return a.priority - b.priority; });
 
-    state.rooms.forEach(function (r, index) {
+    // Pagination calculations
+    var perPage = state.roomsPerPage;
+    var page = state.roomPage;
+    var totalPages = Math.ceil(state.rooms.length / perPage);
+    if (totalPages < 1) totalPages = 1;
+    if (page > totalPages) page = totalPages;
+    if (page < 1) page = 1;
+    state.roomPage = page;
+
+    var startIdx = (page - 1) * perPage;
+    var endIdx = Math.min(startIdx + perPage, state.rooms.length);
+    var pagedRooms = state.rooms.slice(startIdx, endIdx);
+
+    pagedRooms.forEach(function (r, i) {
+      var globalIndex = startIdx + i;
       var tr = document.createElement('tr');
       if (r.id === state.editingRoomId) tr.classList.add('editing');
 
@@ -374,7 +390,7 @@
         '<td>' + escapeHtml(r.name) + '</td>' +
         '<td>' + r.capacity + '</td>' +
         '<td>' + (r.priority === 999 ? '—' : r.priority) + '</td>' +
-        '<td><button class="btn-delete" data-index="' + index + '"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Sil</button></td>';
+        '<td><button class="btn-delete" data-index="' + globalIndex + '"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Sil</button></td>';
 
       // Double click to edit
       tr.addEventListener('dblclick', function () {
@@ -393,7 +409,7 @@
     });
 
     // Delete handlers
-    document.querySelectorAll('.btn-delete').forEach(function (btn) {
+    document.querySelectorAll('#room-table .btn-delete').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         var idx = parseInt(e.currentTarget.getAttribute('data-index'));
         var room = state.rooms[idx];
@@ -406,6 +422,90 @@
         showToast('Salon silindi.', 'warning');
       });
     });
+
+    // Render room pagination
+    renderRoomPagination(totalPages);
+  }
+
+  function renderRoomPagination(totalPages) {
+    var existingPag = document.getElementById('room-pagination');
+    if (existingPag) existingPag.remove();
+
+    if (totalPages <= 1) return;
+
+    var container = document.createElement('div');
+    container.id = 'room-pagination';
+    container.className = 'pagination';
+
+    // Prev button
+    var prevBtn = document.createElement('button');
+    prevBtn.className = 'pagination-btn' + (state.roomPage <= 1 ? ' disabled' : '');
+    prevBtn.innerHTML = '&laquo;';
+    prevBtn.disabled = state.roomPage <= 1;
+    prevBtn.addEventListener('click', function () {
+      if (state.roomPage > 1) { state.roomPage--; renderRoomTable(); }
+    });
+    container.appendChild(prevBtn);
+
+    // Page numbers
+    var startPage = Math.max(1, state.roomPage - 2);
+    var endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+    if (startPage > 1) {
+      container.appendChild(createRoomPageBtn(1));
+      if (startPage > 2) {
+        var dots = document.createElement('span');
+        dots.className = 'pagination-dots';
+        dots.textContent = '...';
+        container.appendChild(dots);
+      }
+    }
+
+    for (var p = startPage; p <= endPage; p++) {
+      container.appendChild(createRoomPageBtn(p));
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        var dots2 = document.createElement('span');
+        dots2.className = 'pagination-dots';
+        dots2.textContent = '...';
+        container.appendChild(dots2);
+      }
+      container.appendChild(createRoomPageBtn(totalPages));
+    }
+
+    // Next button
+    var nextBtn = document.createElement('button');
+    nextBtn.className = 'pagination-btn' + (state.roomPage >= totalPages ? ' disabled' : '');
+    nextBtn.innerHTML = '&raquo;';
+    nextBtn.disabled = state.roomPage >= totalPages;
+    nextBtn.addEventListener('click', function () {
+      if (state.roomPage < totalPages) { state.roomPage++; renderRoomTable(); }
+    });
+    container.appendChild(nextBtn);
+
+    // Info text
+    var info = document.createElement('span');
+    info.className = 'pagination-info';
+    info.textContent = state.rooms.length + ' salon, Sayfa ' + state.roomPage + '/' + totalPages;
+    container.appendChild(info);
+
+    // Insert after room table
+    var tableContainer = document.querySelector('#room-table').closest('.data-table-container');
+    tableContainer.parentNode.insertBefore(container, tableContainer.nextSibling);
+  }
+
+  function createRoomPageBtn(pageNum) {
+    var btn = document.createElement('button');
+    btn.className = 'pagination-btn' + (pageNum === state.roomPage ? ' active' : '');
+    btn.textContent = pageNum;
+    btn.addEventListener('click', function () {
+      state.roomPage = pageNum;
+      renderRoomTable();
+    });
+    return btn;
   }
 
   function cancelEditMode() {
