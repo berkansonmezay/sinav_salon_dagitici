@@ -10,12 +10,15 @@ OUTPUT="$SCRIPT_DIR/index.html"
 echo "🔨 Building offline single-file app..."
 
 # Check libs exist
-if [ ! -f "$LIBS_DIR/xlsx.full.min.js" ] || [ ! -f "$LIBS_DIR/jspdf.umd.min.js" ] || [ ! -f "$LIBS_DIR/jspdf-autotable.min.js" ]; then
+if [ ! -f "$LIBS_DIR/xlsx.full.min.js" ] || [ ! -f "$LIBS_DIR/jspdf.umd.min.js" ] || [ ! -f "$LIBS_DIR/jspdf-autotable.min.js" ] || [ ! -f "$LIBS_DIR/Roboto-Regular.ttf" ] || [ ! -f "$LIBS_DIR/Roboto-Bold.ttf" ]; then
   echo "❌ Library files missing in libs/ directory. Downloading..."
   mkdir -p "$LIBS_DIR"
   curl -sL "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" -o "$LIBS_DIR/xlsx.full.min.js"
   curl -sL "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" -o "$LIBS_DIR/jspdf.umd.min.js"
   curl -sL "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js" -o "$LIBS_DIR/jspdf-autotable.min.js"
+  # Download Fonts
+  curl -sL "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf" -o "$LIBS_DIR/Roboto-Regular.ttf"
+  curl -sL "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf" -o "$LIBS_DIR/Roboto-Bold.ttf"
   echo "✅ Libraries downloaded."
 fi
 
@@ -49,6 +52,19 @@ SAMPLE_ROOMS_B64=""
 if [ -f "$SCRIPT_DIR/public/sample_rooms.xlsx" ]; then
   SAMPLE_ROOMS_B64="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,$(base64 -i "$SCRIPT_DIR/public/sample_rooms.xlsx")"
   echo "📄 Sample rooms Excel embedded"
+fi
+
+# Encode Fonts
+FONT_REGULAR_B64=""
+if [ -f "$LIBS_DIR/Roboto-Regular.ttf" ]; then
+  FONT_REGULAR_B64="$(base64 -i "$LIBS_DIR/Roboto-Regular.ttf")"
+  echo "🔤 Roboto-Regular font embedded"
+fi
+
+FONT_BOLD_B64=""
+if [ -f "$LIBS_DIR/Roboto-Bold.ttf" ]; then
+  FONT_BOLD_B64="$(base64 -i "$LIBS_DIR/Roboto-Bold.ttf")"
+  echo "🔤 Roboto-Bold font embedded"
 fi
 
 # Build final HTML by replacing placeholders
@@ -92,6 +108,12 @@ fi
 if [ -n "$SAMPLE_ROOMS_B64" ]; then
   echo '<script>'
   echo "document.getElementById('download-room-template').href = '$SAMPLE_ROOMS_B64';"
+  echo '</script>'
+fi
+if [ -n "$FONT_REGULAR_B64" ]; then
+  echo '<script>'
+  echo "window.fontRobotoRegular = '$FONT_REGULAR_B64';"
+  echo "window.fontRobotoBold = '$FONT_BOLD_B64';"
   echo '</script>'
 fi
 echo '</body>'

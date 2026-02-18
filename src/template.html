@@ -22,6 +22,11 @@
       <span class="step-num">3</span>
       <span class="step-label">Dağıtım Sonucu</span>
     </div>
+    <div class="step-connector" id="connector-3"></div>
+    <div class="step-indicator" id="step-indicator-4">
+      <span class="step-num">4</span>
+      <span class="step-label">Giriş Belgesi</span>
+    </div>
   </div>
 
   <main>
@@ -260,6 +265,118 @@
           </svg>
           Önceki Adım
         </button>
+        <button id="btn-to-step-4" class="btn btn-primary">
+          Sonraki: Giriş Belgesi
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== STEP 4: Exam Entry Document ==================== -->
+    <section id="step-4" class="step-content card hidden">
+      <div class="card-header">
+        <h2>🎫 Sınav Giriş Belgesi</h2>
+        <p class="text-muted">Sınav bilgilerini girerek giriş belgesi oluşturun.</p>
+      </div>
+
+      <div class="template-download">
+        <a id="download-exam-template" class="btn btn-outline btn-template" download="sinav_bilgi_sablonu.xlsx">
+          📥 Örnek Sınav Bilgi Şablonu İndir
+        </a>
+      </div>
+
+      <div class="two-col-grid">
+        <!-- Excel Upload -->
+        <div class="upload-area upload-area-compact" id="exam-upload-area">
+          <div class="upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+          </div>
+          <h3>Sınav Bilgi Dosyası Yükle</h3>
+          <p>.xlsx, .xls, .csv</p>
+          <input type="file" id="exam-file-input" accept=".xlsx,.xls,.csv" hidden />
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('exam-file-input').click()">Dosya
+            Seç</button>
+        </div>
+
+        <!-- Manual Entry -->
+        <div class="manual-entry-area">
+          <h3>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Manuel Giriş
+          </h3>
+          <div class="exam-form">
+            <div class="exam-form-field">
+              <label for="exam-name">Sınav Adı</label>
+              <input type="text" id="exam-name" placeholder="Örn: 2026 Bahar Dönemi Final Sınavı" class="input" />
+            </div>
+            <div class="exam-form-field">
+              <label for="exam-date">Sınav Tarihi</label>
+              <input type="date" id="exam-date" class="input" />
+            </div>
+            <div class="exam-form-field">
+              <label for="exam-time">Sınav Saati</label>
+              <input type="time" id="exam-time" class="input" />
+            </div>
+            <div class="exam-form-field">
+              <label for="exam-institution">Sınav Yeri</label>
+              <input type="text" id="exam-institution" placeholder="Örn: Edesis Eğitim Kurumları" class="input" />
+            </div>
+            <div class="exam-form-field">
+              <label for="exam-location">Adres</label>
+              <input type="text" id="exam-location" placeholder="Örn: Merkez Kampüs, Bursa" class="input" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exam Info Preview -->
+      <div id="exam-info-preview" class="hidden">
+        <div class="info-bar">
+          <div class="info-bar-left">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <strong>Sınav Bilgileri Yüklendi</strong>
+          </div>
+        </div>
+        <div class="exam-info-cards">
+          <div class="exam-info-card">
+            <span class="exam-info-label">Sınav Adı</span>
+            <span class="exam-info-value" id="exam-preview-name">—</span>
+          </div>
+          <div class="exam-info-card">
+            <span class="exam-info-label">Sınav Tarihi</span>
+            <span class="exam-info-value" id="exam-preview-date">—</span>
+          </div>
+          <div class="exam-info-card">
+            <span class="exam-info-label">Adres</span>
+            <span class="exam-info-value" id="exam-preview-location">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <button id="btn-back-to-step-3" class="btn btn-outline">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Önceki Adım
+        </button>
         <button id="btn-restart" class="btn btn-outline btn-restart">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2">
@@ -267,6 +384,17 @@
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
           </svg>
           Başa Dön
+        </button>
+        <button id="btn-generate-entry-docs" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          Giriş Belgelerini Oluştur (PDF)
         </button>
       </div>
     </section>

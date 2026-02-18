@@ -16,7 +16,16 @@
     studentPage: 1,
     studentsPerPage: 25,
     roomPage: 1,
-    roomsPerPage: 15
+    roomsPerPage: 15,
+    examInfo: {
+      name: '',
+      date: '',
+      time: '',
+      institution: '',
+      location: ''
+    },
+    resultPage: 1,
+    resultsPerPage: 10
   };
 
   // ===== DOM REFS =====
@@ -28,6 +37,8 @@
     setupEventListeners();
     setupDragAndDrop('student-upload-area', handleStudentUpload);
     setupDragAndDrop('room-upload-area', handleRoomUpload);
+
+    setupDragAndDrop('exam-upload-area', handleExamInfoUpload);
     updateUI();
   }
 
@@ -35,22 +46,27 @@
     DOM.steps = {
       1: document.getElementById('step-1'),
       2: document.getElementById('step-2'),
-      3: document.getElementById('step-3')
+      3: document.getElementById('step-3'),
+      4: document.getElementById('step-4')
     };
     DOM.indicators = {
       1: document.getElementById('step-indicator-1'),
       2: document.getElementById('step-indicator-2'),
-      3: document.getElementById('step-indicator-3')
+      3: document.getElementById('step-indicator-3'),
+      4: document.getElementById('step-indicator-4')
     };
     DOM.connectors = {
       1: document.getElementById('connector-1'),
-      2: document.getElementById('connector-2')
+      2: document.getElementById('connector-2'),
+      3: document.getElementById('connector-3')
     };
     DOM.studentCount = document.getElementById('student-count');
     DOM.roomCount = document.getElementById('room-count');
     DOM.totalCapacity = document.getElementById('total-capacity');
     DOM.studentPreview = document.getElementById('student-preview');
     DOM.studentUploadArea = document.getElementById('student-upload-area');
+    DOM.examUploadArea = document.getElementById('exam-upload-area');
+    DOM.examPreview = document.getElementById('exam-info-preview');
     DOM.toastContainer = document.getElementById('toast-container');
   }
 
@@ -103,7 +119,7 @@
   // ===== UI UPDATE =====
   function updateUI() {
     // Steps visibility & indicators
-    for (var key = 1; key <= 3; key++) {
+    for (var key = 1; key <= 4; key++) {
       if (key === state.step) {
         DOM.steps[key].classList.remove('hidden');
         DOM.steps[key].classList.add('animate-in');
@@ -121,7 +137,7 @@
     }
 
     // Connectors
-    for (var c = 1; c <= 2; c++) {
+    for (var c = 1; c <= 3; c++) {
       DOM.connectors[c].classList.remove('completed', 'active');
       if (c < state.step) DOM.connectors[c].classList.add('completed');
       else if (c === state.step) DOM.connectors[c].classList.add('active');
@@ -552,6 +568,7 @@
     });
 
     state.distribution = { results: result, overflow: overflow };
+    state.resultPage = 1;
     renderDistributionResults();
   }
 
@@ -601,7 +618,20 @@
     // Room result cards
     var html = '';
 
-    state.rooms.forEach(function (room) {
+    // Pagination calculations
+    var perPage = state.resultsPerPage;
+    var page = state.resultPage;
+    var totalPages = Math.ceil(state.rooms.length / perPage);
+    if (totalPages < 1) totalPages = 1;
+    if (page > totalPages) page = totalPages;
+    if (page < 1) page = 1;
+    state.resultPage = page;
+
+    var startIdx = (page - 1) * perPage;
+    var endIdx = Math.min(startIdx + perPage, state.rooms.length);
+    var pagedRooms = state.rooms.slice(startIdx, endIdx);
+
+    pagedRooms.forEach(function (room) {
       var students = state.distribution.results[room.id];
       html +=
         '<div class="room-result-card">' +
@@ -632,10 +662,15 @@
         '</div>';
     });
 
+    resultsEl.innerHTML = html;
+
+    // Render Pagination
+    renderResultPagination(totalPages);
+
     // Overflow section
     if (hasOverflow) {
-      html +=
-        '<div class="room-result-card overflow-result-card">' +
+      var overflowHtml =
+        '<div class="room-result-card overflow-result-card" style="margin-top: 2rem;">' +
         '<div class="room-result-header">' +
         '<h3>⚠️ Açıkta Kalan Öğrenciler</h3>' +
         '<span class="capacity-badge">' + state.distribution.overflow.length + ' öğrenci</span>' +
@@ -658,9 +693,92 @@
         '</table>' +
         '</div>' +
         '</div>';
+
+      resultsEl.insertAdjacentHTML('beforeend', overflowHtml);
+    }
+  }
+
+  function renderResultPagination(totalPages) {
+    var existingPag = document.getElementById('result-pagination');
+    if (existingPag) existingPag.remove();
+
+    if (totalPages <= 1) return;
+
+    var container = document.createElement('div');
+    container.id = 'result-pagination';
+    container.className = 'pagination';
+    container.style.justifyContent = 'center';
+    container.style.marginBottom = '2rem';
+
+    // Prev button
+    var prevBtn = document.createElement('button');
+    prevBtn.className = 'pagination-btn' + (state.resultPage <= 1 ? ' disabled' : '');
+    prevBtn.innerHTML = '&laquo;';
+    prevBtn.disabled = state.resultPage <= 1;
+    prevBtn.addEventListener('click', function () {
+      if (state.resultPage > 1) { state.resultPage--; renderDistributionResults(); }
+    });
+    container.appendChild(prevBtn);
+
+    // Page numbers
+    var startPage = Math.max(1, state.resultPage - 2);
+    var endPage = Math.min(totalPages, startPage + 4);
+    if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+    if (startPage > 1) {
+      container.appendChild(createResultPageBtn(1));
+      if (startPage > 2) {
+        var dots = document.createElement('span');
+        dots.className = 'pagination-dots';
+        dots.textContent = '...';
+        container.appendChild(dots);
+      }
     }
 
-    resultsEl.innerHTML = html;
+    for (var p = startPage; p <= endPage; p++) {
+      container.appendChild(createResultPageBtn(p));
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        var dots2 = document.createElement('span');
+        dots2.className = 'pagination-dots';
+        dots2.textContent = '...';
+        container.appendChild(dots2);
+      }
+      container.appendChild(createResultPageBtn(totalPages));
+    }
+
+    // Next button
+    var nextBtn = document.createElement('button');
+    nextBtn.className = 'pagination-btn' + (state.resultPage >= totalPages ? ' disabled' : '');
+    nextBtn.innerHTML = '&raquo;';
+    nextBtn.disabled = state.resultPage >= totalPages;
+    nextBtn.addEventListener('click', function () {
+      if (state.resultPage < totalPages) { state.resultPage++; renderDistributionResults(); }
+    });
+    container.appendChild(nextBtn);
+
+    // Info text
+    var info = document.createElement('span');
+    info.className = 'pagination-info';
+    info.textContent = state.rooms.length + ' salon, Sayfa ' + state.resultPage + '/' + totalPages;
+    container.appendChild(info);
+
+    // Insert into resultsEl
+    var resultsEl = document.getElementById('distribution-results');
+    resultsEl.appendChild(container);
+  }
+
+  function createResultPageBtn(pageNum) {
+    var btn = document.createElement('button');
+    btn.className = 'pagination-btn' + (pageNum === state.resultPage ? ' active' : '');
+    btn.textContent = pageNum;
+    btn.addEventListener('click', function () {
+      state.resultPage = pageNum;
+      renderDistributionResults();
+    });
+    return btn;
   }
 
   // ===== EXCEL EXPORT =====
@@ -775,6 +893,78 @@
     showToast('Açıkta kalanlar listesi indirildi.', 'success');
   }
 
+  // ===== EXAM INFO HANDLING =====
+  function handleExamInfoUpload(file) {
+    parseExcelFile(file).then(function (data) {
+      if (!data || data.length < 2) { // Header + 1 row
+        showToast('Dosyada bilgi bulunamadı.', 'error');
+        return;
+      }
+
+      var row = data[1]; // First data row
+      // Expected structure: [Exam Name, Exam Date, Exam Location]
+      var name = row[0] ? String(row[0]).trim() : '';
+      var dateRaw = row[1];
+      var timeRaw = row[2]; // Assuming time is next
+      var location = row[3] ? String(row[3]).trim() : '';
+      var institution = row[4] ? String(row[4]).trim() : '';
+
+      // Date parsing
+      var dateStr = '';
+      if (dateRaw) {
+        if (typeof dateRaw === 'number') {
+          var dateObj = new Date(Math.round((dateRaw - 25569) * 86400 * 1000));
+          dateStr = dateObj.toISOString().split('T')[0];
+        } else {
+          dateStr = String(dateRaw);
+        }
+      }
+
+      state.examInfo = {
+        name: name,
+        date: dateStr,
+        time: timeRaw ? String(timeRaw) : '',
+        location: location,
+        institution: institution
+      };
+
+      updateExamInfoUI();
+      showToast('Sınav bilgileri yüklendi.', 'success');
+
+    }).catch(function (err) {
+      console.error(err);
+      showToast('Dosya okuma hatası: ' + err.message, 'error');
+    });
+  }
+
+  function updateExamInfoUI() {
+    document.getElementById('exam-name').value = state.examInfo.name;
+    document.getElementById('exam-date').value = state.examInfo.date;
+    document.getElementById('exam-time').value = state.examInfo.time;
+    document.getElementById('exam-institution').value = state.examInfo.institution;
+    document.getElementById('exam-location').value = state.examInfo.location;
+
+    document.getElementById('exam-preview-name').textContent = state.examInfo.name || '—';
+    document.getElementById('exam-preview-date').textContent = state.examInfo.date || '—';
+    // Add time/location to preview if needed, or just keep simple preview
+    document.getElementById('exam-preview-location').textContent = state.examInfo.location || '—';
+
+    DOM.examUploadArea.classList.add('hidden');
+    DOM.examPreview.classList.remove('hidden');
+  }
+
+  function downloadExamInfoTemplate() {
+    var wb = XLSX.utils.book_new();
+    var wsData = [
+      ['Sınav Adı', 'Sınav Tarihi (YYYY-MM-DD)', 'Sınav Saati', 'Adres', 'Sınav Yeri'],
+      ['2026 Bahar Final', '2026-06-15', '09:30', 'Merkez Kampüs, Bursa', 'Edesis Eğitim Kurumları']
+    ];
+    var ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 30 }, { wch: 30 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'SinavBilgi');
+    XLSX.writeFile(wb, 'sinav_bilgi_sablonu.xlsx');
+  }
+
   // ===== PDF EXPORT =====
   function generatePDF(distributionData, rooms) {
     var jspdf = window.jspdf;
@@ -816,7 +1006,7 @@
         body: tableData,
         theme: 'grid',
         headStyles: { fillColor: [79, 70, 229] },
-        styles: { fontSize: 9, cellPadding: 2 },
+        styles: { fontSize: 9, cellPadding: 2, font: 'helvetica' },
         columnStyles: {
           0: { cellWidth: 15 },
           1: { cellWidth: 20 },
@@ -853,12 +1043,214 @@
         body: tableData,
         theme: 'striped',
         headStyles: { fillColor: [220, 38, 38] },
-        styles: { fontSize: 9 }
+        styles: { fontSize: 9, font: 'helvetica' }
       });
     }
 
     doc.save('sinav_dagitim_raporu.pdf');
     showToast('PDF raporu indirildi.', 'success');
+  }
+
+
+
+  // ===== PDF ENTRY DOCS =====
+  function generateEntryDocumentsPDF() {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      throw new Error('PDF kütüphanesi yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
+    }
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+    // Add Fonts
+    if (window.fontRobotoRegular && window.fontRobotoBold) {
+      doc.addFileToVFS('Roboto-Regular.ttf', window.fontRobotoRegular);
+      doc.addFileToVFS('Roboto-Bold.ttf', window.fontRobotoBold);
+      doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+      doc.addFont('Roboto-Bold.ttf', 'Roboto', 'bold');
+      doc.setFont('Roboto', 'normal');
+    }
+
+    var logoImg = document.getElementById('header-logo').src;
+
+    // Sort rooms
+    var sortedRooms = state.rooms.slice().sort(function (a, b) { return (a.priority || 999) - (b.priority || 999); });
+
+    var docIndex = 0;
+
+    sortedRooms.forEach(function (room) {
+      var students = state.distribution.results[room.id] || [];
+
+      students.forEach(function (student, i) {
+        var position = docIndex % 2; // 0 = top, 1 = bottom
+        if (docIndex > 0 && position === 0) {
+          doc.addPage();
+        }
+
+        // Calculate Y offset (Top: 10mm, Bottom: 158mm)
+        // A4 height = 297mm. Half = 148.5mm.
+        var startY = position === 0 ? 10 : 158;
+
+        drawEntryDocument(doc, startY, student, room, i + 1, logoImg);
+
+        docIndex++;
+      });
+    });
+
+    doc.save('sinav_giris_belgeleri.pdf');
+    showToast(docIndex + ' adet giriş belgesi oluşturuldu.', 'success');
+  }
+
+  function drawEntryDocument(doc, y, student, room, seatNo, logoImg) {
+    // Colors
+    var blueColor = [100, 149, 237]; // CornflowerBlue
+    var redColor = [255, 105, 120]; // Light Red/Pinkish
+
+    var width = 190;
+    var x = 10;
+
+    // --- Header ---
+    // Logo (Centered now)
+    var headerEnd = y + 20; // Reduced initial spacing
+    if (logoImg) {
+      try {
+        var logoW = 18; // Slightly smaller logo
+        var logoH = 18;
+        var logoX = (210 - logoW) / 2;
+        doc.addImage(logoImg, 'PNG', logoX, y, logoW, logoH);
+        headerEnd = y + 20;
+      } catch (e) { /* ignore */ }
+    }
+
+    // Title removed as requested
+    // doc.setFontSize(14);
+    // if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
+    // else doc.setFont(undefined, 'bold');
+
+    // var title = state.examInfo.institution || 'SINAV GİRİŞ BELGESİ';
+    // doc.text(title.toLocaleUpperCase('tr-TR'), 105, headerEnd + 8, { align: 'center' });
+
+    // Exam Name removed from top header as requested
+
+    // --- Box 1: Student Info ---
+    var box1Y = headerEnd + 15;
+
+    // Header (Purple Gradient-ish)
+    doc.setFillColor(83, 109, 254); // Indigo/Purple
+    doc.roundedRect(x, box1Y, width, 8, 2, 2, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
+
+    if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
+    else doc.setFont(undefined, 'bold');
+
+    doc.text('ÖĞRENCİ BİLGİLERİ', 105, box1Y + 5.5, { align: 'center' });
+
+    // Body (White with border)
+    doc.setDrawColor(200, 200, 200); // Light grey border
+    doc.setFillColor(255, 255, 255); // White bg
+    doc.roundedRect(x, box1Y + 8, width, 24, 2, 2, 'FD');
+
+    doc.setFontSize(10);
+
+    // Helper for Label:Value pairs
+    function drawField(label, value, xPos, yPos) {
+      doc.setTextColor(100, 100, 100); // Grey Label
+      if (window.fontRobotoRegular) doc.setFont('Roboto', 'normal');
+      else doc.setFont(undefined, 'normal');
+      doc.text(label, xPos, yPos);
+
+      // Value
+      var labelWidth = doc.getTextWidth(label);
+      doc.setTextColor(0, 0, 0); // Black Value
+      if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
+      else doc.setFont(undefined, 'bold');
+      doc.text(value, xPos + labelWidth + 2, yPos);
+    }
+
+    // Row 1
+    drawField('Adı ve Soyadı:', student.name.toLocaleUpperCase('tr-TR'), x + 5, box1Y + 14);
+    drawField('Sınıf:', String(student.classRef).toLocaleUpperCase('tr-TR'), x + 120, box1Y + 14);
+
+    // Row 2
+    drawField('TC Kimlik No:', String(student.tc), x + 5, box1Y + 20);
+    drawField('Telefon:', String(student.phone), x + 120, box1Y + 20);
+
+    // Row 3
+    // drawField('Okul:', (state.examInfo.institution || '-').toLocaleUpperCase('tr-TR'), x + 5, box1Y + 26);
+
+    // --- Box 2: Exam Info ---
+    var box2Y = box1Y + 38; // Increased gap
+
+    // Header (Pink/Red)
+    doc.setFillColor(255, 64, 129); // Pink
+    doc.roundedRect(x, box2Y, width, 8, 2, 2, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
+    else doc.setFont(undefined, 'bold');
+
+    doc.text('SINAV GİRİŞ BİLGİLERİ', 105, box2Y + 5.5, { align: 'center' });
+
+    // Body Box
+    doc.setDrawColor(200, 200, 200);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(x, box2Y + 8, width, 50, 2, 2, 'S'); // Outline only, white bg implied
+
+    // 1. Exam Name Strip (Light Blue, Rounded)
+    doc.setFillColor(225, 245, 254); // Light Blue
+    doc.roundedRect(x + 2, box2Y + 10, width - 4, 10, 2, 2, 'F');
+
+    doc.setTextColor(0, 0, 0);
+    if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
+    doc.text((state.examInfo.name || '').toLocaleUpperCase('tr-TR'), 105, box2Y + 16.5, { align: 'center' });
+
+    // 2. Time & Salon Strip (Peach/Orange, Rounded)
+    doc.setFillColor(255, 224, 178); // Peach
+    doc.roundedRect(x + 2, box2Y + 22, width - 4, 16, 2, 2, 'F');
+
+    // Vertical Separator Line (Simulated)
+    // doc.setDrawColor(255, 255, 255);
+    // doc.line(105, box2Y + 22, 105, box2Y + 38);
+
+    // Time
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(9);
+    if (window.fontRobotoRegular) doc.setFont('Roboto', 'bold');
+    doc.text('SINAV SAATİ', x + 50, box2Y + 27, { align: 'center' });
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.text((state.examInfo.time || '--:--'), x + 50, box2Y + 34, { align: 'center' });
+
+    // Salon
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(9);
+    doc.text('SALON NO', x + 140, box2Y + 27, { align: 'center' });
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.text(room.name.toLocaleUpperCase('tr-TR') + ' / ' + seatNo, x + 140, box2Y + 34, { align: 'center' });
+
+    // 3. Footer Info (White area)
+    doc.setFontSize(10);
+
+    // Row 1
+    var dateStr = state.examInfo.date || '';
+    drawField('Sınav Tarihi:', formatDateTR(dateStr), x + 10, box2Y + 45);
+    drawField('Sınav Yeri:', (state.examInfo.institution || '').toLocaleUpperCase('tr-TR'), x + 100, box2Y + 45);
+
+    // Row 2
+    drawField('Adres:', (state.examInfo.location || '').toLocaleUpperCase('tr-TR'), x + 10, box2Y + 52);
+
+    // Dashed separator line if top
+    if (y < 100) {
+      doc.setLineDash([2, 2], 0);
+      doc.setDrawColor(200, 200, 200);
+      doc.line(0, 148.5, 210, 148.5);
+      doc.setLineDash([], 0);
+      doc.setDrawColor(0, 0, 0);
+    }
   }
 
   // Turkish char transliteration for PDF (jsPDF default font limitation)
@@ -875,6 +1267,16 @@
     return text.replace(/[ğĞşŞıİçÇöÖüÜ]/g, function (ch) {
       return map[ch] || ch;
     });
+  }
+
+  // Format YYYY-MM-DD to DD.MM.YYYY
+  function formatDateTR(dateStr) {
+    if (!dateStr) return '';
+    var parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return parts[2] + '.' + parts[1] + '.' + parts[0];
+    }
+    return dateStr;
   }
 
   // ===== ESCAPE HTML =====
@@ -1024,6 +1426,65 @@
         btn.innerHTML = originalHTML;
         btn.disabled = false;
       }
+    });
+
+    // Nav: Step 3 → 4
+    document.getElementById('btn-to-step-4').addEventListener('click', function () {
+      setStep(4);
+    });
+
+    // Nav: Step 4 → 3
+    document.getElementById('btn-back-to-step-3').addEventListener('click', function () {
+      setStep(3);
+    });
+
+    // Exam Info Template Download
+    document.getElementById('download-exam-template').addEventListener('click', function (e) {
+      e.preventDefault();
+      downloadExamInfoTemplate();
+    });
+
+    // Exam File Input
+    document.getElementById('exam-file-input').addEventListener('change', function (e) {
+      if (e.target.files.length > 0) handleExamInfoUpload(e.target.files[0]);
+    });
+
+    // Manual Exam Inputs
+    ['exam-name', 'exam-date', 'exam-time', 'exam-institution', 'exam-location'].forEach(function (id) {
+      document.getElementById(id).addEventListener('input', function (e) {
+        var key = id.replace('exam-', '');
+        state.examInfo[key] = e.target.value;
+
+        // Show preview if user types manually
+        if (state.examInfo.name || state.examInfo.date || state.examInfo.location) {
+          DOM.examUploadArea.classList.add('hidden');
+          DOM.examPreview.classList.remove('hidden');
+        }
+
+        var previewEl = document.getElementById('exam-preview-' + key);
+        if (previewEl) previewEl.textContent = state.examInfo[key] || '—';
+      });
+    });
+
+    // Generate Individual Docs PDF
+    document.getElementById('btn-generate-entry-docs').addEventListener('click', function () {
+      var btn = document.getElementById('btn-generate-entry-docs');
+      var originalHTML = btn.innerHTML;
+      btn.innerHTML = '⏳ Oluşturuluyor...';
+      btn.disabled = true;
+
+      // Use timeout to allow UI to update
+      setTimeout(function () {
+        try {
+          generateEntryDocumentsPDF();
+        } catch (e) {
+          console.error(e);
+          showToast('Hata: ' + (e.message || e), 'error');
+        } finally {
+          btn.innerHTML = originalHTML;
+          btn.disabled = false;
+        }
+      }, 50);
     });
 
     // Enter key on room inputs
