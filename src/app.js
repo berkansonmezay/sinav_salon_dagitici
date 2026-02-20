@@ -1991,7 +1991,7 @@
 
       var lines = sozelCols[i].title.split('\n');
       var totalTextH = lines.length * 2.5;
-      var startTextY = colY + (subHeadH - totalTextH) / 2 + 2.5;
+      var startTextY = colY + (subHeadH - totalTextH) / 2 + 1.8;
       for (var li = 0; li < lines.length; li++) {
         doc.text(lines[li], cx + sColW / 2, startTextY + li * 2.5, { align: 'center' });
       }
@@ -2022,7 +2022,7 @@
       doc.rect(cx + 1, colY, mColW - 2, subHeadH, 'F');
       doc.setTextColor(255);
       doc.setFontSize(7);
-      doc.text(sayisalColsVals[j].title, cx + mColW / 2, colY + subHeadH / 2 + 2.5, { align: 'center' });
+      doc.text(sayisalColsVals[j].title, cx + mColW / 2, colY + subHeadH / 2 + 1.2, { align: 'center' });
 
       // Answers
       drawPinkAnswerColumn(doc, sayisalColsVals[j].q, cx + 1, borderY + rowGap / 2 + gridTopPadding, mColW - 2, pR, pG, pB, rowGap);
