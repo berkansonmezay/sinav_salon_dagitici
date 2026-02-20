@@ -1969,7 +1969,7 @@
     var gapBelowSubHead = 3.0; // Increased gap to 3.0
     var borderY = colY + subHeadH + gapBelowSubHead;
     var gridTopPadding = 1.0;
-    var rowGap = 6.5; // Increased row gap for LGS
+    var rowGap = 7.2; // Further increased row gap for LGS as requested
 
     // SÖZEL Columns
     var sozelCols = [
