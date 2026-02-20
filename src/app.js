@@ -1659,7 +1659,7 @@
     var leftAreaH = 61;
 
     // We want the QR code to fill a good portion of the space but remain centered
-    var qrSize = 42;
+    var qrSize = 36;
 
     // Center horizontally and vertically within the left area
     var qrX = margin + (leftAreaW - qrSize) / 2;
@@ -2102,7 +2102,7 @@
     var leftAreaH = 49;
 
     // We want the QR code to fill a good portion of the space but remain centered
-    var qrSize = 42;
+    var qrSize = 36;
 
     // Center horizontally and vertically within the left area
     var qrX = margin + (leftAreaW - qrSize) / 2;
