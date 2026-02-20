@@ -1626,13 +1626,35 @@
     showToast(docIndex + ' adet optik form oluşturuldu.', 'success');
   }
 
+  function drawAlignmentMarks(doc, pageHeight) {
+    doc.setFillColor(0, 0, 0); // Black
+
+    var startY = 10;
+    var endY = pageHeight - 10;
+
+    // Sadece yatay çizgiler (Horizontal timing marks)
+    var markX = 4;
+    var markWidth = 5; // Biraz daha geniş yaptım ki net görünsün
+    var markHeight = 1.5;
+    var pitch = 5;
+
+    for (var y = startY; y <= endY - markHeight; y += pitch) {
+      doc.rect(markX, y, markWidth, markHeight, 'F');
+    }
+  }
+
   function drawOpticalForm(doc, student, room, type) {
     var pageWidth = 210;
     var pageHeight = 297;
-    var margin = 8;
+    // Form içeriği sola çok yakın olduğu için yatay ayar çizgileriyle çakışıyor, 
+    // margin artırılarak form hafifçe sağa kaydırıldı (8 -> 12).
+    var margin = 12;
 
     // Pink/Magenta theme color matching reference
     var pinkR = 220, pinkG = 50, pinkB = 120;
+
+    // Draw alignment/timing marks on the left edge
+    drawAlignmentMarks(doc, pageHeight);
 
     if (type === 'lgs') {
       drawLGSOpticalForm(doc, student, room, pageWidth, pageHeight, margin, pinkR, pinkG, pinkB);
@@ -1928,16 +1950,21 @@
     var setFont = function (style) {
       if (window.fontRobotoRegular) doc.setFont('Roboto', style);
     };
-    var pageMargin = 8;
+    // Sola eklediğimiz ayar çizgilerine(timing marks) çarpmaması için 
+    // lgs iç şablon margin değerini (8 -> 14) artırıyoruz.
+    var pageMargin = 14;
     var pageWidth = 210;
+
+    // Sağ tarafta da aynı margin'i koruyoruz
     var contentWidth = pageWidth - 2 * pageMargin;
 
     // Split: SÖZEL (Left 4 cols) | SAYISAL (Right 2 cols)
     // Sözel 4 columns: 20, 10, 10, 10
     // Sayısal 2 columns: 20, 20
 
-    // Proportional widths: 4 columns for Sözel, 2 for Sayısal = 6 total
-    var colW = contentWidth / 6.2; // Leave a small gap margin
+    // Sözel ile sayısal alanlar arasındaki boşluğu (gap) manuel ayarlayalım.
+    // Şablonun çok sıkışık olmaması için kolon genişliklerini biraz daraltıp arayı açabiliriz:
+    var colW = contentWidth / 6.5;
     var sozelW = colW * 4;
     var sayisalW = colW * 2;
     var gap = contentWidth - sozelW - sayisalW;
@@ -2282,7 +2309,8 @@
     // ============ REFINED LAYOUT (BELOW DİKKAT) ============
     // Kitapçık Türü now below DİKKAT block. 
     var leftStartY = dikkatY + dikkatH + 4; // Start below DİKKAT
-    var rightStartY = leftStartY + 8 + 12;  // Add significant gap before Answer columns start
+    // Görseldeki şikayete istinaden boşluğu daraltıyoruz (8+12 den 8+4 e düşürdük)
+    var rightStartY = leftStartY + 8 + 4;  // Reduced gap before Answer columns start
     drawRefinedTYTLayout(doc, leftStartY, rightStartY, pR, pG, pB, student);
 
 
