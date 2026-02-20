@@ -1648,354 +1648,235 @@
 
     // ============ LAYOUT CONSTANTS ============
     var leftX = margin;
-    var rightBlockX = 90; // Start of the right block (Name grid etc)
-    var rightBlockW = pageWidth - rightBlockX - margin;
+    var rightX = pageWidth / 2 + 10;
 
-    // ============ RIGHT HEADER ============
-    // "İLKOKUL & ORTAOKUL CEVAP KAĞIDI"
+    // ============ LEFT SIDE: QR CODE ============
+    var infoX = rightX - 25; // Pre-calculated to find the left area width
+    var leftAreaW = infoX - margin;
+
+    // Calculate the height of the right-side header + info box + dikkat box + kitapçık türü to find the available vertical space
+    // Header(8) + gap(2) + InfoBox(28) + gap(2) + Dikkat(9) + gap(4) + Kitapçık(8) = 61
+    var leftAreaH = 61;
+
+    // We want the QR code to fill a good portion of the space but remain centered
+    var qrSize = 42;
+
+    // Center horizontally and vertically within the left area
+    var qrX = margin + (leftAreaW - qrSize) / 2;
+    var qrY = margin + (leftAreaH - qrSize) / 2;
+
+    var qrText = (student.name || '') + ' - ' + (student.id || '') + ' - ' + (student.tc || '') + ' - ' + (student.classRef || '');
+    var qrData = generateQRCodeDataURL(qrText);
+    if (qrData) {
+      doc.addImage(qrData, 'PNG', qrX, qrY, qrSize, qrSize);
+    }
+
+    // ============ RIGHT SIDE: STUDENT INFO HEADER & FIELDS ============
+    var infoWidth = pageWidth - margin - infoX;
+    var infoY = margin;
+
+    // 1. Header
     doc.setFillColor(pR, pG, pB);
-    doc.rect(rightBlockX, margin, rightBlockW, 8, 'F');
+    doc.rect(infoX, infoY, infoWidth, 8, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     setFont('bold');
-    doc.text('İLKOKUL & ORTAOKUL CEVAP KAĞIDI', rightBlockX + rightBlockW - 2, margin + 5, { align: 'right' });
+    doc.text('İLKOKUL & ORTAOKUL CEVAP KAĞIDI', infoX + infoWidth / 2, infoY + 5.5, { align: 'center' });
     doc.setTextColor(0);
 
-    // ============ LEFT BLOCK (Student Info & Codes) ============
-    var row1Y = margin + 12;
-
-    // --- Student Info Box ---
-    // Box dimensions
-    var infoBoxW = 75;
-    var infoBoxH = 35;
-
-    // "GRUP NO" vertical strip attached to left of info box
-    var grupNoW = 12;
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(leftX, row1Y, grupNoW, 8, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(6);
-    doc.text('GRUP', leftX + grupNoW / 2, row1Y + 3, { align: 'center' });
-    doc.text('NO', leftX + grupNoW / 2, row1Y + 6, { align: 'center' });
-    doc.setTextColor(0);
-
-    // Grup No bubbles (Just a visual placeholder 0-9 single col? Or 2 cols? 
-    // Image shows "GRUP NO" header, and below it simple vertical line. 
-    // Let's standard 0-9 single column for simplicity unless user complained.)
+    // 2. Bordered Box below header
+    var boxY = infoY + 8 + 2; // Added 2 unit gap
+    var boxH = 28;
     doc.setDrawColor(pR, pG, pB);
     doc.setLineWidth(0.3);
-    doc.rect(leftX, row1Y + 8, grupNoW, infoBoxH - 8);
-    // Draw 0-9 bubbles 
-    // We can use drawPinkBubbleGrid for a single column 0-9
-    // But let's check if we have data. '01' is typical. 
-    // The image seems to show 2 columns? "0 0", "1 1". 
-    // Let's do 2 columns.
-    var grupNoVal = '01'; // Default
-    drawPinkBubbleGrid(doc, grupNoVal, leftX + 1, row1Y + 9, 2, 4, 3.2, 1.4, pR, pG, pB);
+    doc.rect(infoX, boxY, infoWidth, boxH);
 
-
-    // Info Text Box
-    var infoX = leftX + grupNoW + 2;
-    var infoW = infoBoxW - grupNoW - 2;
-    doc.setDrawColor(pR, pG, pB);
-    doc.rect(infoX, row1Y, infoW, infoBoxH);
-
-    var fields = [
-      { label: 'Soyadı - Adı', value: (student.name || '').toLocaleUpperCase('tr-TR') },
-      { label: 'Numarası', value: String(student.id || '') },
-      { label: 'Sınıfı / Şubesi', value: String(student.classRef || '') },
-      { label: 'Telefon Nu.', value: String(student.phone || '') },
-      { label: 'Kurum Adı', value: (state.examInfo.institution || '').toLocaleUpperCase('tr-TR') }
+    // 3. Info Fields
+    var infoFields = [
+      { label: 'Adı Soyadı', value: (student.name || '').toLocaleUpperCase('tr-TR') },
+      { label: 'Öğrenci Numarası', value: String(student.id || '') },
+      { label: 'TC Kimlik No', value: String(student.tc || '') },
+      { label: 'Sınıfı', value: String(student.classRef || '') }
     ];
 
-    for (var fi = 0; fi < fields.length; fi++) {
-      var fy = row1Y + 6 + fi * 6.5;
-      doc.setFontSize(7);
+    var startTextY = boxY + 5.5; // Start earlier to fit 4 fields in 28 units height
+    var lineGap = 6;             // Tighter gap
+
+    var maxLabelW = 0;
+    doc.setFontSize(8);
+    setFont('bold');
+    infoFields.forEach(function (f) {
+      var w = doc.getTextWidth(f.label + ' :');
+      if (w > maxLabelW) maxLabelW = w;
+    });
+
+    var labelsEndX = infoX + maxLabelW + 6; // Where labels end
+    var valStartX = labelsEndX + 2;         // Where lines start
+
+    infoFields.forEach(function (f, i) {
+      var ty = startTextY + i * lineGap;
+
+      // Label (Pink) - Right Aligned
+      doc.setFontSize(8);
       setFont('bold');
       doc.setTextColor(pR, pG, pB);
-      doc.text(fields[fi].label, infoX + 2, fy);
+      var lw = doc.getTextWidth(f.label + ' :');
+      doc.text(f.label + ' :', labelsEndX - lw, ty);
+
+      // Dotted Line
+      var lineEndX = infoX + infoWidth - 3;
+      doc.setDrawColor(180, 180, 180); // Light grey dots
+      doc.setLineWidth(0.2);
+      doc.setLineDash([0.5, 0.8], 0);
+      doc.line(valStartX, ty + 1, lineEndX, ty + 1);
+      doc.setLineDash([], 0);
+
+      // Value
       doc.setTextColor(0);
       setFont('normal');
-      doc.text(':', infoX + 25, fy);
-      doc.text(fields[fi].value, infoX + 27, fy);
-      // Dotted line
-      doc.setDrawColor(200);
-      doc.setLineWidth(0.1);
-      doc.line(infoX + 27, fy + 1, infoX + infoW - 2, fy + 1);
-    }
+      doc.setFontSize(8);
+      doc.text(f.value, valStartX + 2, ty - 0.5);
+    });
 
-    // --- Doğru Kodlama / Kitapçık Türü ---
-    var row2Y = row1Y + infoBoxH + 3;
-    var dkH = 12;
+    // ============ DİKKAT SECTION ============
+    var dikkatY = boxY + boxH + 2;
+    var dikkatH = 9;
+    var gapBetweenBoxes = 2;
 
-    // Doğru Kodlama
-    doc.setDrawColor(pR, pG, pB);
-    doc.setLineWidth(0.3);
-    doc.rect(leftX, row2Y, 22, dkH);
-    doc.setFontSize(5);
-    setFont('bold');
-    doc.text('Doğru Kodlama', leftX + 11, row2Y + 3, { align: 'center' });
-    doc.text('Örneği', leftX + 11, row2Y + 5.5, { align: 'center' });
-    // Hand icon? Skip. Just bubble.
-    doc.setFillColor(0);
-    doc.circle(leftX + 11, row2Y + 9, 1.5, 'F');
-
-    // Kitapçık Türü
-    var ktX = leftX + 24;
-    var ktW = 50;
-    doc.setFontSize(5.5);
-    setFont('italic');
-    doc.setTextColor(pR, pG, pB);
-    doc.text('Kitapçık türünü kodlamayı unutmayınız.', ktX, row2Y - 1); // Text above
-    doc.setTextColor(0);
-    setFont('normal');
-
-    // Pink Box
+    // 1. DİKKAT Box (Pink)
+    var dikkatW = 16;
     doc.setFillColor(pR, pG, pB);
-    doc.rect(ktX, row2Y, ktW, dkH, 'F');
-    // White Box inside for bubbles
-    doc.setFillColor(255);
-    doc.rect(ktX + 22, row2Y + 1, ktW - 24, dkH - 2, 'F');
-
+    doc.rect(infoX, dikkatY, dikkatW, dikkatH, 'F');
     doc.setTextColor(255);
     doc.setFontSize(7);
     setFont('bold');
-    doc.text('KİTAPÇIK TÜRÜ', ktX + 11, row2Y + 7, { align: 'center' });
+    doc.text('DİKKAT', infoX + dikkatW / 2, dikkatY + (dikkatH / 2) + 1, { align: 'center' });
     doc.setTextColor(0);
 
-    // Bubbles A B
-    var ktBubs = ['A', 'B'];
-    for (var k = 0; k < ktBubs.length; k++) {
-      var kbx = ktX + 28 + k * 10;
-      doc.setDrawColor(0);
-      doc.circle(kbx, row2Y + 6, 2, 'S');
-      doc.setFontSize(6);
-      doc.text(ktBubs[k], kbx - 0.5, row2Y + 7);
-    }
-
-
-    // --- ÖĞRENCİ NO (Left Bottom) ---
-    var row3Y = row2Y + dkH + 4;
-    var stdNoW = 22;
-
-    // Header
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(leftX, row3Y, stdNoW, 6, 'F');
-    doc.setTextColor(255);
-    doc.setFontSize(6);
-    doc.text('ÖĞRENCİ NO.', leftX + stdNoW / 2, row3Y + 4, { align: 'center' });
-    doc.setTextColor(0);
-
-    // Grid
+    // 2. Yanlış kodlama Box
+    var yanlisX = infoX + dikkatW + gapBetweenBoxes;
+    var yanlisW = 38;
     doc.setDrawColor(pR, pG, pB);
-    doc.rect(leftX, row3Y + 6, stdNoW, 35); // Box around grid
+    doc.setLineWidth(0.3);
+    doc.rect(yanlisX, dikkatY, yanlisW, dikkatH);
 
-    var studentNo = String(student.id || '').replace(/[^0-9]/g, '');
-    studentNo = studentNo.padStart(6, '0').substring(0, 6); // visual only shows 6 cols?
-    // Visual shows "0 0 0 0" 4 cols? Or 6?
-    // Let's assume 6 for standard.
-    // Actually the reference image shows 4 columns of bubbles under ÖĞRENCİ NO?
-    // Let's count... 1,2,3... looks like 4-5.
-    // Let's stick to 6 to be safe for typical IDs, or 9.
-    // But I will fit 6.
-    drawPinkBubbleGrid(doc, studentNo, leftX + 1, row3Y + 7, 6, 3.4, 3.2, 1.3, pR, pG, pB);
-
-
-    // --- T.C. KİMLİK NO / CEP (Right Bottom of Left Block) ---
-    var tcX = leftX + 26;
-    var tcW = infoBoxW - 26;
-
-    // Header
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(tcX, row3Y, tcW, 6, 'F');
-    doc.setTextColor(255);
-    doc.setFontSize(6);
-    doc.text('T.C. KİMLİK NO. / CEP TELEFONU', tcX + tcW / 2, row3Y + 4, { align: 'center' });
+    doc.setTextColor(pR, pG, pB);
+    doc.setFontSize(5.5);
+    setFont('bold');
+    doc.text('Yanlış kodlama', yanlisX + yanlisW / 2, dikkatY + 3, { align: 'center' });
     doc.setTextColor(0);
 
-    // Grid
-    doc.setDrawColor(pR, pG, pB);
-    doc.rect(tcX, row3Y + 6, tcW, 35);
+    var startCircX = yanlisX + 3.5;
+    var circY = dikkatY + 6;
+    var gap = 5.5;
 
-    var tcNo = String(student.tc || '').replace(/[^0-9]/g, '');
-    tcNo = tcNo.padStart(11, '0').substring(0, 11);
-    drawPinkBubbleGrid(doc, tcNo, tcX + 1, row3Y + 7, 11, 4.0, 3.2, 1.3, pR, pG, pB);
+    doc.setDrawColor(0);
+    doc.setFillColor(0);
+    doc.setTextColor(0);
 
+    // 1. Dot in center
+    doc.setLineWidth(0.3);
+    doc.circle(startCircX, circY, 1.8, 'S');
+    doc.circle(startCircX, circY, 0.5, 'F');
 
-    // ============ RIGHT BLOCK (SINIF/ŞUBE + SOYADI-ADI) ============
-    // "SOYADI - ADI" Header Strip
-    var nameHeaderY = margin + 9; // Below the top header
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(rightBlockX, nameHeaderY, rightBlockW, 6, 'F');
+    // 2. Vertical Oval / Bean (Simulated)
+    doc.ellipse(startCircX + gap, circY, 1.0, 1.8, 'F');
 
-    // "SINIF ŞUBE" part of header (small left part)
-    var sinifSubeW = 12; // Width for SINIF ŞUBE column
-    doc.setDrawColor(255);
-    doc.setLineWidth(0.5);
-    doc.line(rightBlockX + sinifSubeW, nameHeaderY, rightBlockX + sinifSubeW, nameHeaderY + 6);
-
-    doc.setTextColor(255);
+    // 3. Tick
+    doc.circle(startCircX + gap * 2, circY, 1.8, 'S');
     doc.setFontSize(5);
-    doc.text('SINIF', rightBlockX + sinifSubeW / 2, nameHeaderY + 2.5, { align: 'center' });
-    doc.text('ŞUBE', rightBlockX + sinifSubeW / 2, nameHeaderY + 5.0, { align: 'center' });
+    doc.text('✔', startCircX + gap * 2 - 1, circY + 1.2);
 
-    // "SOYADI - ADI" part
+    // 4. Cross
+    doc.circle(startCircX + gap * 3, circY, 1.8, 'S');
+    doc.text('X', startCircX + gap * 3 - 1, circY + 1.2);
+
+    // 5. Scribble
+    doc.circle(startCircX + gap * 4, circY, 1.8, 'S');
+    doc.line(startCircX + gap * 4 - 1, circY, startCircX + gap * 4 + 1, circY);
+
+    // 6. Dash
+    doc.circle(startCircX + gap * 5, circY, 1.8, 'S');
+    doc.text('-', startCircX + gap * 5 - 0.5, circY + 1);
+
+    // 3. Doğru kodlama Box
+    var dogruX = yanlisX + yanlisW;
+    var dogruW = 22;
+    doc.setDrawColor(pR, pG, pB);
+    doc.setLineWidth(0.3);
+    doc.rect(dogruX, dikkatY, dogruW, dikkatH);
+
+    doc.setTextColor(pR, pG, pB);
+    doc.text('Doğru kodlama', dogruX + dogruW / 2, dikkatY + 3, { align: 'center' });
+    doc.setTextColor(0);
+
+    // Correct bubble
+    doc.setDrawColor(0);
+    doc.setFillColor(0);
+    doc.circle(dogruX + dogruW / 2, circY, 1.8, 'F');
+
+    // 4. Text on Right
+    var textX = dogruX + dogruW + 2;
+    var remainingW = (infoX + infoWidth) - textX;
+    doc.setTextColor(0);
+    doc.setFontSize(5.5);
+    setFont('bold');
+
+    doc.text('Kodlamalarınızı lütfen yumuşak', textX + remainingW / 2, dikkatY + 3, { align: 'center' });
+    doc.text('kurşun kalem ile yapınız.', textX + remainingW / 2, dikkatY + 6, { align: 'center' });
+
+
+    // ============ KİTAPÇIK TÜRÜ ============
+    var kitapcikY = dikkatY + dikkatH + 4; // Start below DİKKAT
+    var row1H = 8;
+    var titleW = 24;
+    var boxGap = 4;
+    var optionsW = 28;
+    var gap2 = 14;
+    var textX2 = infoX + titleW + boxGap + optionsW + gap2 - 32; // Exact shifted left
+
+    doc.setFillColor(pR, pG, pB);
+    doc.rect(infoX, kitapcikY, titleW, row1H, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(7);
+    setFont('bold');
+    doc.text('KİTAPÇIK TÜRÜ', infoX + titleW / 2, kitapcikY + 5.3, { align: 'center' });
+
+    var optionsX = infoX + titleW + boxGap;
+    doc.setDrawColor(pR, pG, pB);
+    doc.setLineWidth(0.3);
+    doc.rect(optionsX, kitapcikY, optionsW, row1H);
+
+    var ktBubs = ['A', 'B', 'C', 'D'];
+    var bubGap = optionsW / (ktBubs.length + 1);
+
+    for (var k = 0; k < ktBubs.length; k++) {
+      var bx = optionsX + bubGap * (k + 1);
+      doc.setDrawColor(pR, pG, pB);
+      doc.setLineWidth(0.3);
+      doc.circle(bx, kitapcikY + 4, 2, 'S');
+      doc.setTextColor(pR, pG, pB);
+      doc.setFontSize(5.5);
+      setFont('bold');
+      doc.text(ktBubs[k], bx, kitapcikY + 4.65, { align: 'center' });
+    }
+
+    var textRemainingW = (pageWidth - margin) - textX2;
     doc.setFontSize(6);
-    doc.text('SOYADI - ADI (Soyadı, adı arasına bir karakter boşluk bırakınız.)', rightBlockX + sinifSubeW + 2, nameHeaderY + 4);
+    setFont('bold');
     doc.setTextColor(0);
+    doc.text('Kitapçık Türünü', textX2 + textRemainingW / 2, kitapcikY + 3, { align: 'center' });
+    doc.text('Kodlamayı Unutmayınız.', textX2 + textRemainingW / 2, kitapcikY + 6, { align: 'center' });
 
-    // --- Grid Area ---
-    var gridY = nameHeaderY + 6;
-    var gridH = 100; // Go down deep
-
-    // SINIF / ŞUBE Columns (Left of Grid)
-    // 2 columns: left is 1-8?, right is A-Z?
-    // Visual shows:
-    // Left col: bubbles 1..4..8?
-    // Right col: bubbles A..Z?
-    // Let's implement that.
-
-    // Class Col (1-8)
-    var classX = rightBlockX + 1;
-    for (var c = 1; c <= 8; c++) {
-      var by = gridY + 2 + (c - 1) * 4; // GAP 4
-      doc.setDrawColor(pR, pG, pB);
-      doc.circle(classX + 2, by, 1.5, 'S');
-      doc.setFontSize(5);
-      doc.setTextColor(pR, pG, pB);
-      doc.text(String(c), classX + 2 - 0.5, by + 0.5);
-    }
-
-    // Letter Col (A-Z)
-    var branchX = rightBlockX + 7;
-    var alphabet = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
-    for (var l = 0; l < alphabet.length; l++) {
-      var by = gridY + 2 + l * 3.3; // Tighter gap for letters
-      doc.setDrawColor(pR, pG, pB);
-      doc.circle(branchX + 2, by, 1.5, 'S');
-      doc.setFontSize(5);
-      doc.setTextColor(pR, pG, pB);
-      doc.text(alphabet[l], branchX + 2 - 0.5, by + 0.5);
-    }
-
-    // NAME GRID (Right of SINIF/ŞUBE)
-    var nameGridX = rightBlockX + sinifSubeW;
-    var nameGridW = rightBlockW - sinifSubeW;
-    // We need columns for Name char positions (e.g. 20 chars)
-    // And rows for A-Z
-    var nameLen = 20;
-    var charW = nameGridW / nameLen;
-    var charGapY = 3.3; // Same as letter col
-
-    var nameStr = (student.name || '').toLocaleUpperCase('tr-TR');
-
-    // Draw Bubbles
-    for (var r = 0; r < alphabet.length; r++) {
-      var rowY = gridY + 2 + r * charGapY;
-      var char = alphabet[r];
-
-      for (var c = 0; c < nameLen; c++) {
-        var colX = nameGridX + c * charW + charW / 2;
-
-        // Top Header Letters (Inside header? No, usually circles at top row?)
-        // Visual has A..Z circles in rows.
-        // Top of grid has empty boxes for writing name?
-        // Usually yes. Let's add write boxes above.
-
-        // Check if filled
-        var targetChar = nameStr[c];
-        var isFilled = (targetChar === char);
-
-        if (isFilled) {
-          doc.setFillColor(0);
-          doc.circle(colX, rowY, 1.3, 'F');
-          doc.setTextColor(255);
-        } else {
-          doc.setDrawColor(pR, pG, pB);
-          doc.setLineWidth(0.1);
-          doc.circle(colX, rowY, 1.3, 'S');
-          doc.setTextColor(pR, pG, pB);
-        }
-
-        doc.setFontSize(4);
-        var tw = doc.getTextWidth(char);
-        doc.text(char, colX - tw / 2, rowY + 0.5);
-        doc.setTextColor(0);
-      }
-    }
-
-    // Draw Name Write Boxes (in the header strip or just below?)
-    // Visual shows them just below the pink header, above the bubbles.
-    // Since we started bubbles at gridY + 2, let's put boxes at gridY - ?
-    // Actually the bubbles start immediately. Let's put boxes *in* the pink header?
-    // No, visual: "SOYADI - ADI" pink header, then a row of white boxes for writing chars, then bubbles A..Z.
-
-    // Let's adjust gridY down to make space for write boxes
-    // Reset loops? No, just draw boxes at `gridY` and shift bubbles down.
-    // Shift bubbles by 5mm.
-
-    // Redo Bubbles with shift
-    // (Consolidating visual code)
-    // Actually, I'll just adding writing boxes at gridY, and push bubbles to gridY+5
-
-    // Writing boxes
-    for (var c = 0; c < nameLen; c++) {
-      var colX = nameGridX + c * charW;
-      doc.setDrawColor(pR, pG, pB);
-      doc.rect(colX + 0.5, gridY, charW - 1, 4);
-      // Write char if exists
-      if (c < nameStr.length) {
-        doc.setFontSize(6);
-        doc.text(nameStr[c], colX + charW / 2, gridY + 3, { align: 'center' });
-      }
-    }
-
-    // Actual Grid Bubbles loop
-    var bubblesStartY = gridY + 5;
-    for (var l = 0; l < alphabet.length; l++) {
-      var by = bubblesStartY + 2 + l * 3.3;
-      var char = alphabet[l];
-
-      // Re-draw Branch column bubbles aligned
-      doc.setDrawColor(pR, pG, pB);
-      doc.circle(branchX + 2, by, 1.4, 'S');
-      doc.setFontSize(4);
-      doc.setTextColor(pR, pG, pB);
-      doc.text(char, branchX + 2 - 0.5, by + 0.5);
-
-      // Name Grid
-      for (var c = 0; c < nameLen; c++) {
-        var colX = nameGridX + c * charW + charW / 2;
-        var targetChar = nameStr[c];
-        var isFilled = (targetChar === char);
-
-        if (isFilled) {
-          doc.setFillColor(0);
-          doc.circle(colX, by, 1.3, 'F');
-          doc.setTextColor(255);
-        } else {
-          doc.setDrawColor(pR, pG, pB);
-          doc.setLineWidth(0.1);
-          doc.circle(colX, by, 1.3, 'S');
-          doc.setTextColor(pR, pG, pB);
-        }
-        doc.text(char, colX - doc.getTextWidth(char) / 2, by + 0.5);
-      }
-    }
+    // Reset colors
     doc.setTextColor(0);
-
+    doc.setDrawColor(0);
 
     // ============ BOTTOM BLOCK (SÖZEL / SAYISAL) ============
-    var bottomY = row3Y + 45; // Start below the student info blocks
+    var bottomY = kitapcikY + row1H + 10;
     drawLGSLayout(doc, bottomY, pR, pG, pB);
 
     // ============ FOOTER ============
-    doc.setFontSize(5.5);
-    setFont('normal');
-    doc.setTextColor(80, 80, 80);
-    doc.text('Bu Optik Form Mobil Okumaya Uygun Bastırılmıştır.', pageWidth / 2, pageHeight - 5, { align: 'center' });
-    doc.text('Form Kodu: LGS 20-20', pageWidth - margin, pageHeight - 5, { align: 'right' });
-    doc.setTextColor(0);
   }
 
   function drawPinkBubbleGrid(doc, value, x, y, cols, gapX, gapY, bubbleR, pR, pG, pB) {
@@ -2055,9 +1936,11 @@
     // Sözel 4 columns: 20, 10, 10, 10
     // Sayısal 2 columns: 20, 20
 
-    var sozelW = contentWidth * 0.62;
-    var sayisalW = contentWidth * 0.36;
-    var gap = contentWidth - sozelW - sayisalW; // space between
+    // Proportional widths: 4 columns for Sözel, 2 for Sayısal = 6 total
+    var colW = contentWidth / 6.2; // Leave a small gap margin
+    var sozelW = colW * 4;
+    var sayisalW = colW * 2;
+    var gap = contentWidth - sozelW - sayisalW;
 
     var sayisalX = pageMargin + sozelW + gap;
 
@@ -2072,13 +1955,21 @@
     doc.text('SÖZEL BÖLÜM', pageMargin + sozelW / 2, startY + 5, { align: 'center' });
 
     // SAYISAL Header
+    doc.setFillColor(pR, pG, pB);
     doc.roundedRect(sayisalX, startY, sayisalW, headerH, 1, 1, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(10);
+    setFont('bold');
     doc.text('SAYISAL BÖLÜM', sayisalX + sayisalW / 2, startY + 5, { align: 'center' });
     doc.setTextColor(0);
 
     // Columns
     var colY = startY + headerH + 2;
     var subHeadH = 10;
+    var gapBelowSubHead = 1.0;
+    var borderY = colY + subHeadH + gapBelowSubHead;
+    var gridTopPadding = 1.0;
+    var rowGap = 6.5; // Increased row gap for LGS
 
     // SÖZEL Columns
     var sozelCols = [
@@ -2096,15 +1987,24 @@
       doc.setFillColor(pR, pG, pB);
       doc.rect(cx + 1, colY, sColW - 2, subHeadH, 'F');
       doc.setTextColor(255);
-      doc.setFontSize(5);
+      doc.setFontSize(7);
 
       var lines = sozelCols[i].title.split('\n');
+      var totalTextH = lines.length * 2.5;
+      var startTextY = colY + (subHeadH - totalTextH) / 2 + 2.5;
       for (var li = 0; li < lines.length; li++) {
-        doc.text(lines[li], cx + sColW / 2, colY + 3 + li * 2.5, { align: 'center' });
+        doc.text(lines[li], cx + sColW / 2, startTextY + li * 2.5, { align: 'center' });
       }
 
       // Answers
-      drawPinkAnswerColumn(doc, sozelCols[i].q, cx, colY + subHeadH + 2, sColW, pR, pG, pB);
+      // Use the new rowGap
+      drawPinkAnswerColumn(doc, sozelCols[i].q, cx + 1, borderY + rowGap / 2 + gridTopPadding, sColW - 2, pR, pG, pB, rowGap);
+
+      // Individual Column Border
+      var colGridH = sozelCols[i].q * rowGap + 2.0;
+      doc.setDrawColor(pR, pG, pB);
+      doc.setLineWidth(0.3);
+      doc.rect(cx + 1, borderY, sColW - 2, colGridH);
     }
 
     // SAYISAL Columns
@@ -2121,57 +2021,64 @@
       doc.setFillColor(pR, pG, pB);
       doc.rect(cx + 1, colY, mColW - 2, subHeadH, 'F');
       doc.setTextColor(255);
-      doc.setFontSize(6);
-      doc.text(sayisalColsVals[j].title, cx + mColW / 2, colY + 6, { align: 'center' });
+      doc.setFontSize(7);
+      doc.text(sayisalColsVals[j].title, cx + mColW / 2, colY + subHeadH / 2 + 2.5, { align: 'center' });
 
       // Answers
-      drawPinkAnswerColumn(doc, sayisalColsVals[j].q, cx, colY + subHeadH + 2, mColW, pR, pG, pB);
+      drawPinkAnswerColumn(doc, sayisalColsVals[j].q, cx + 1, borderY + rowGap / 2 + gridTopPadding, mColW - 2, pR, pG, pB, rowGap);
+
+      // Individual Column Border
+      var colGridH = sayisalColsVals[j].q * rowGap + 2.0;
+      doc.setDrawColor(pR, pG, pB);
+      doc.setLineWidth(0.3);
+      doc.rect(cx + 1, borderY, mColW - 2, colGridH);
     }
 
-    // Outer Borders
-    doc.setDrawColor(pR, pG, pB);
-    doc.setLineWidth(0.3);
-    var height = subHeadH + 2 + 20 * 4.5 + 2;
-    doc.rect(pageMargin, colY, sozelW, height);
-    doc.rect(sayisalX, colY, sayisalW, height);
-
-    // Vertical dividers
-    for (var l = 1; l < 4; l++) doc.line(pageMargin + l * sColW, colY, pageMargin + l * sColW, colY + height);
-    doc.line(sayisalX + mColW, colY, sayisalX + mColW, colY + height);
   }
 
-  function drawPinkAnswerColumn(doc, count, x, y, availWidth, pR, pG, pB) {
+  function drawPinkAnswerColumn(doc, count, x, y, availWidth, pR, pG, pB, rGap) {
+    if (!rGap) rGap = 4.5;
     var setFont = function (style) {
       if (window.fontRobotoRegular) doc.setFont('Roboto', style);
     };
 
-    var bubbleR = 2.0;
-    var gapY = 4.5;
     var opts = ['A', 'B', 'C', 'D'];
-    var optGap = (availWidth - 6) / opts.length;
+    var leftSpace = 7; // Reserved for question number
+    var rightPadding = 2; // Reserved for right margin
+    var activeWidth = availWidth - leftSpace - rightPadding;
+    var optGap = activeWidth / (opts.length - 1); // Space between bubble centers
+    var startOptX = x + leftSpace; // Center of the first bubble (well, center-ish if we use obx)
+    // Adjusting startOptX to be the center of the first bubble
+    // Actually, let's spread them across the active width
+    var step = activeWidth / (opts.length - 1);
+    var startX = x + leftSpace;
 
     for (var i = 1; i <= count; i++) {
-      var rowY = y + (i - 1) * gapY;
+      var rowY = y + (i - 1) * rGap;
+
+      // Zebra striping for even rows to improve readability
+      if (i % 2 === 0) {
+        doc.setFillColor(250, 230, 240); // Very light pink
+        doc.rect(x, rowY - rGap / 2, availWidth, rGap, 'F');
+      }
 
       // Question number
-      doc.setFontSize(7);
+      doc.setFontSize(6.5);
       setFont('bold');
-      doc.setTextColor(pR, pG, pB);
-      doc.text(String(i), x + 1, rowY + 1, { align: 'center' });
-      doc.setTextColor(0);
+      doc.setTextColor(0); // Black like TYT
+      doc.text(String(i), x + 1.5, rowY + 1.5);
 
       // Bubbles
       for (var o = 0; o < opts.length; o++) {
-        var bx = x + 6 + o * optGap;
+        var obx = startX + o * step;
         doc.setDrawColor(pR, pG, pB);
-        doc.setLineWidth(0.25);
-        doc.circle(bx, rowY, bubbleR, 'S');
-        doc.setFontSize(5.5);
+        doc.setLineWidth(0.3); // Standardized thickness
+        doc.circle(obx, rowY, 1.95, 'S'); // Make bubbles bigger (radius 1.95)
+
+        doc.setFontSize(6); // Bigger text inside bubbles
         setFont('bold');
         doc.setTextColor(pR, pG, pB);
-        var tw = doc.getTextWidth(opts[o]);
-        doc.text(opts[o], bx - tw / 2, rowY + 1);
-        doc.setTextColor(0);
+        doc.text(opts[o], obx, rowY + 0.65, { align: 'center' }); // Automatically center
       }
     }
   }
@@ -2185,6 +2092,27 @@
 
     var leftX = margin;
     var rightX = pageWidth / 2 + 10;
+
+    // ============ LEFT SIDE: QR CODE ============
+    var infoX = rightX - 25; // Pre-calculated to find the left area width
+    var leftAreaW = infoX - margin;
+
+    // Calculate the height of the right-side header + info box + dikkat box to find the available vertical space
+    // Header(8) + gap(2) + InfoBox(28) + gap(2) + Dikkat(9) = 49
+    var leftAreaH = 49;
+
+    // We want the QR code to fill a good portion of the space but remain centered
+    var qrSize = 42;
+
+    // Center horizontally and vertically within the left area
+    var qrX = margin + (leftAreaW - qrSize) / 2;
+    var qrY = margin + (leftAreaH - qrSize) / 2;
+
+    var qrText = (student.name || '') + ' - ' + (student.id || '') + ' - ' + (student.tc || '') + ' - ' + (student.classRef || '');
+    var qrData = generateQRCodeDataURL(qrText);
+    if (qrData) {
+      doc.addImage(qrData, 'PNG', qrX, qrY, qrSize, qrSize);
+    }
 
     // ============ RIGHT SIDE: STUDENT INFO HEADER & FIELDS ============
     // Align with image: "LİSE GRUBU CEVAP KAĞIDI" pink header, then bordered box below.
@@ -2203,43 +2131,47 @@
     doc.setTextColor(0);
 
     // 2. Bordered Box below header
-    var boxY = infoY + 8;
+    var boxY = infoY + 8 + 2; // Added 2 unit gap
     var boxH = 28;
     doc.setDrawColor(pR, pG, pB);
     doc.setLineWidth(0.4);
     doc.rect(infoX, boxY, infoWidth, boxH);
 
-    // 3. Info Fields (Soyadı - Adı, Sınıf - Şube as requested)
-    // We keep others? Let's prioritize Name and Class visually.
+    // 3. Info Fields (Adı Soyadı, Öğrenci Numarası, TC Kimlik No, Sınıfı as requested)
     var infoFields = [
-      { label: 'Soyadı - Adı', value: (student.name || '').toLocaleUpperCase('tr-TR') },
-      { label: 'Sınıf - Şube', value: String(student.classRef || '') }
+      { label: 'Adı Soyadı', value: (student.name || '').toLocaleUpperCase('tr-TR') },
+      { label: 'Öğrenci Numarası', value: String(student.id || '') },
+      { label: 'TC Kimlik No', value: String(student.tc || '') },
+      { label: 'Sınıfı', value: String(student.classRef || '') }
     ];
 
-    // Add Kurum Adı as extra if space allows, but keep it tight to look like image first
-    // Add Kurum Adı - REMOVED AS REQUESTED
-    /* if (state.examInfo.institution) {
-        infoFields.push({ label: 'Kurum Adı', value: state.examInfo.institution.toLocaleUpperCase('tr-TR') });
-    } */
+    var startTextY = boxY + 5.5; // Start earlier to fit 4 fields in 28 units height
+    var lineGap = 6;             // Tighter gap
 
-    var startTextY = boxY + 8;
-    var lineGap = 7;
+    // Pre-calculate fixed start X for values so they align vertically
+    var maxLabelW = 0;
+    doc.setFontSize(8);
+    setFont('bold');
+    infoFields.forEach(function (f) {
+      var w = doc.getTextWidth(f.label + ' :');
+      if (w > maxLabelW) maxLabelW = w;
+    });
+
+    var labelsEndX = infoX + maxLabelW + 6; // Where labels end
+    var valStartX = labelsEndX + 2;         // Where lines start
 
     infoFields.forEach(function (f, i) {
       var ty = startTextY + i * lineGap;
 
-      // Label (Pink)
+      // Label (Pink) - Right Aligned
       doc.setFontSize(8);
       setFont('bold');
       doc.setTextColor(pR, pG, pB);
-      doc.text(f.label + ' :', infoX + 3, ty);
-
-      // Calculate start of value area
-      var labelW = doc.getTextWidth(f.label + ' :');
-      var valStartX = infoX + 3 + labelW + 2;
-      var lineEndX = infoX + infoWidth - 3;
+      var lw = doc.getTextWidth(f.label + ' :');
+      doc.text(f.label + ' :', labelsEndX - lw, ty);
 
       // Dotted Line
+      var lineEndX = infoX + infoWidth - 3;
       doc.setDrawColor(180, 180, 180); // Light grey dots
       doc.setLineWidth(0.2);
       doc.setLineDash([0.5, 0.8], 0);
@@ -2249,79 +2181,18 @@
       // Value
       doc.setTextColor(0);
       setFont('normal'); // Value normal weight? Or bold?
-      // Image doesn't show value style but assuming normal/bold black on dotted line.
       doc.setFontSize(8);
       doc.text(f.value, valStartX + 2, ty - 0.5);
     });
 
-    // ============ NUMARANIZ BOX (Left of Info Box) ============
-    // NEW DESIGN: Vertical bubble grid on the left side of the info block.
-    // The visual shows a tall vertical box with "NUMARANIZ" header and bubbles 0-9 for 6 digits?
-    // Actually the visual shows a grid of bubbles. 6 columns (digits). Rows 0-9.
-
-    // Position: To the left of infoX. 
-    // infoX is rightX - 25. 
-    // We have space between left margin and infoX.
-    // Let's place it aligned with the top of the LİSE GRUBU... header. or slightly below?
-    // Image: Top aligned with Info box top? Or floating?
-    // It seems to be ALIGNED with the top of the header box "LİSE GRUBU..."
-
-    // Width: 6 cols * 4mm = ~24mm.
-    var numW = 22;
-    var numX = infoX - numW - 5; // Gap 5mm
-    var numY = infoY; // Top aligned with header
-
-    // Header "NUMARANIZ"
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(numX, numY, numW, 6, 'F');
-    doc.setTextColor(255);
-    doc.setFontSize(6);
-    setFont('bold');
-    doc.text('NUMARANIZ', numX + numW / 2, numY + 4, { align: 'center' });
-    doc.setTextColor(0);
-
-    // White Box for bubbles
-    // Height: 10 rows * gap + padding
-    var numGridH = 40; // Approx
-    doc.setDrawColor(pR, pG, pB);
-    doc.setLineWidth(0.3);
-    doc.rect(numX, numY + 6, numW, numGridH);
-
-    // Bubbles 0-9 for 6 columns?
-    // Student ID max 6 chars?
-    var studentNo = String(student.id || '').replace(/[^0-9]/g, '');
-    studentNo = studentNo.padStart(6, '0').substring(0, 6);
-
-    var numBubbleGapY = 3.5;
-    var numBubbleGapX = 3.5;
-    var startNumY = numY + 8.5;
-    var startNumX = numX + 2.5;
-
-    for (var r = 0; r < 10; r++) {
-      var by = startNumY + r * numBubbleGapY;
-      for (var c = 0; c < 6; c++) {
-        var bx = startNumX + c * numBubbleGapX;
-        var isFilled = (studentNo[c] === String(r));
-        drawSimpleBubble(doc, bx, by, 1.3, String(r), isFilled, pR, pG, pB);
-      }
-    }
-
-    // Text below: "Kitapçık Türünü Kodlamayı Unutmayınız" (Seems to be here in image?)
-    // Actually in the image, below the number grid, there is text.
-    doc.setFontSize(4.5);
-    doc.setTextColor(0);
-    setFont('bold');
-    doc.text('Kitapçık Türünü', numX + numW / 2, numY + 6 + numGridH + 3, { align: 'center' });
-    doc.text('Kodlamayı Unutmayınız.', numX + numW / 2, numY + 6 + numGridH + 6, { align: 'center' });
+    // ============ NUMARANIZ BOX REMOVED AS REQUESTED ============
 
 
     // ============ DİKKAT SECTION ============
     // Visual: Pink "DİKKAT" box left, then white box with "Yanlış kodlama" examples, then "Doğru kodlama" example, then text.
-    var dikkatY = boxY + boxH; // Start exactly below the info box to connect them? Or slightly overlapping border?
-    // Visual shows them connected. The Pink 'DİKKAT' box seems to be attached to the bottom left of the white info box?
-    // Actually, looking at image: The "DİKKAT" row is attached to the bottom of the "Soyadı-Adı / Sınıf" box.
-    // So boxY + boxH is correct.
-    var dikkatH = 7;
+    var dikkatY = boxY + boxH + 2; // Added 2 unit gap below info box
+    var dikkatH = 9; // Increased height from 7 to 9
+    var gapBetweenBoxes = 2; // Requested gap
 
     // 1. DİKKAT Box (Pink)
     var dikkatW = 16;
@@ -2330,11 +2201,11 @@
     doc.setTextColor(255);
     doc.setFontSize(7); // Slightly larger
     setFont('bold');
-    doc.text('DİKKAT', infoX + dikkatW / 2, dikkatY + 4.5, { align: 'center' });
+    doc.text('DİKKAT', infoX + dikkatW / 2, dikkatY + (dikkatH / 2) + 1, { align: 'center' }); // Vertically centered
     doc.setTextColor(0);
 
     // 2. Yanlış kodlama Box (White with Pink Border)
-    var yanlisX = infoX + dikkatW;
+    var yanlisX = infoX + dikkatW + gapBetweenBoxes; // Added gap
     var yanlisW = 38;
     doc.setDrawColor(pR, pG, pB);
     doc.setLineWidth(0.3);
@@ -2343,18 +2214,22 @@
     doc.setTextColor(pR, pG, pB);
     doc.setFontSize(5.5);
     setFont('bold');
-    doc.text('Yanlış kodlama', yanlisX + yanlisW / 2, dikkatY + 2.5, { align: 'center' });
+    doc.text('Yanlış kodlama', yanlisX + yanlisW / 2, dikkatY + 3, { align: 'center' }); // Adjusted Y
     doc.setTextColor(0);
 
     // Examples: Circle with center dot, filled oval, tick, cross, scribble, dash
     // We'll draw 5-6 small circles
     var startCircX = yanlisX + 3.5;
-    var circY = dikkatY + 5;
+    var circY = dikkatY + 6; // Adjusted Y to be centered in new height
     var gap = 5.5;
 
-    // 1. Dot in center
+    // All markings in black as requested
     doc.setDrawColor(0);
-    doc.setLineWidth(0.15);
+    doc.setFillColor(0);
+    doc.setTextColor(0);
+
+    // 1. Dot in center
+    doc.setLineWidth(0.3); // Standardized thickness for small bubbles
     doc.circle(startCircX, circY, 1.8, 'S');
     doc.circle(startCircX, circY, 0.5, 'F'); // Dot
 
@@ -2365,7 +2240,6 @@
     doc.circle(startCircX + gap * 2, circY, 1.8, 'S');
     doc.setFontSize(5);
     doc.text('✔', startCircX + gap * 2 - 1, circY + 1.2);
-    // Or lines manually if char not avail? Checkmark usually fine.
 
     // 4. Cross
     doc.circle(startCircX + gap * 3, circY, 1.8, 'S');
@@ -2374,55 +2248,47 @@
     // 5. Scribble (Zigzag line)
     doc.circle(startCircX + gap * 4, circY, 1.8, 'S');
     doc.line(startCircX + gap * 4 - 1, circY, startCircX + gap * 4 + 1, circY);
-    // Just a line through
 
     // 6. Dash
     doc.circle(startCircX + gap * 5, circY, 1.8, 'S');
     doc.text('-', startCircX + gap * 5 - 0.5, circY + 1);
 
     // 3. Doğru kodlama Box
-    var dogruX = yanlisX + yanlisW;
+    var dogruX = yanlisX + yanlisW; // Keep attached to Yanlış kodlama box
     var dogruW = 22;
     doc.setDrawColor(pR, pG, pB);
     doc.rect(dogruX, dikkatY, dogruW, dikkatH);
 
     doc.setTextColor(pR, pG, pB);
-    doc.setFontSize(5.5);
-    // setFont('bold'); // already bold
-    doc.text('Doğru kodlama', dogruX + dogruW / 2, dikkatY + 2.5, { align: 'center' });
+    doc.text('Doğru kodlama', dogruX + dogruW / 2, dikkatY + 3, { align: 'center' }); // Adjusted Y
     doc.setTextColor(0);
 
-    // Correct bubble
+    // Correct bubble (Black as requested)
+    doc.setDrawColor(0);
     doc.setFillColor(0);
     doc.circle(dogruX + dogruW / 2, circY, 1.8, 'F');
 
-    // 4. Text on Right
-    var textX = dogruX + dogruW + 3;
-    doc.setTextColor(pR, pG, pB);
+    // 4. Text on Right (Centered in the remaining right area, Black)
+    var textX = dogruX + dogruW + 2; // Shifted slightly left from +3 to +2
+    var remainingW = (infoX + infoWidth) - textX; // Calculate remaining width for centering
+    doc.setTextColor(0); // Black text requested
     doc.setFontSize(5.5);
     setFont('bold');
 
-    // "Kodlamamızı lütfen yumuşak kurşun kalem ile yapınız." 
-    // Using standard correct text.
-    doc.text('Kodlamalarınızı lütfen yumuşak', textX, dikkatY + 2.5);
-    doc.text('kurşun kalem ile yapınız.', textX + 10, dikkatY + 5.5); // Indented slightly for center alignment visual
-    doc.setTextColor(0);
+    // "Kodlamalarınızı lütfen yumuşak kurşun kalem ile yapınız." 
+    doc.text('Kodlamalarınızı lütfen yumuşak', textX + remainingW / 2, dikkatY + 3, { align: 'center' });
+    doc.text('kurşun kalem ile yapınız.', textX + remainingW / 2, dikkatY + 6, { align: 'center' });
 
     // ============ REFINED LAYOUT (BELOW DİKKAT) ============
-    // Replaces correct/booklet type/answer sections with the new comprehensive layout
-    var refinedStartY = dikkatY + dikkatH + 5;
-    drawRefinedTYTLayout(doc, refinedStartY, pR, pG, pB, student);
+    // Kitapçık Türü now below DİKKAT block. 
+    var leftStartY = dikkatY + dikkatH + 4; // Start below DİKKAT
+    var rightStartY = leftStartY + 8 + 12;  // Add significant gap before Answer columns start
+    drawRefinedTYTLayout(doc, leftStartY, rightStartY, pR, pG, pB, student);
 
-    // ============ FOOTER ============
-    doc.setFontSize(5);
-    setFont('normal');
-    doc.setTextColor(80, 80, 80);
-    doc.text('Bu Optik Form Mobil Okumaya Uygun Bastırılmıştır.', pageWidth / 2, pageHeight - 5, { align: 'center' });
-    doc.text('Form Kodu: ProNET YKS-1', pageWidth - margin, pageHeight - 5, { align: 'right' });
-    doc.setTextColor(0);
+
   }
 
-  function drawRefinedTYTLayout(doc, startY, pR, pG, pB, student) {
+  function drawRefinedTYTLayout(doc, leftStartY, rightStartY, pR, pG, pB, student) {
     var setFont = function (style) {
       if (window.fontRobotoRegular) doc.setFont('Roboto', style);
     };
@@ -2431,266 +2297,181 @@
     var pageWidth = 210;
     var contentW = pageWidth - 2 * margin;
 
-    // LEFT BLOCK (Kitapçık, TC, Sınıf, Name) approx 42%
+    // LEFT BLOCK (Kitapçık, TC, Sınıf, Name) approx 33% to leave a larger gap
     // RIGHT BLOCK (Oturum, Answers) approx 56%
-    // GAP 2%
-    var leftW = contentW * 0.42;
-    var gap = contentW * 0.02;
-    var rightW = contentW - leftW - gap;
-    var rightX = margin + leftW + gap;
+    var leftW = contentW * 0.33;
+    var rightW = contentW * 0.56;
+    var rightX = margin + contentW - rightW; // Right-align the right block
 
     // ================= LEFT BLOCK =================
 
-    // 1. KİTAPÇIK TÜRÜ (Pink Header)
-    var row1H = 6;
+    // 1. KİTAPÇIK TÜRÜ (Moved under DİKKAT area on the right side)
+    var row1H = 8;
+
+    // Calculate right bounding box (same as DİKKAT box)
+    var infoX = (pageWidth / 2 + 10) - 25;
+
+    // Layout: [ KİTAPÇIK TÜRÜ ] [ boxGap ] [ A B C D ] [ gap ] [ Warning Text ]
+    var titleW = 24; // Narrower width for "KİTAPÇIK TÜRÜ"
+    var boxGap = 4; // Gap between title box and options box
+    var optionsW = 28; // Narrower width for A B C D box
+    var gap = 14; // Space between options and warning text
+    var textX = infoX + titleW + boxGap + optionsW + gap; // Text starts after options and gap
+
+    // Left part: Pink box with text "KİTAPÇIK TÜRÜ"
     doc.setFillColor(pR, pG, pB);
-    doc.rect(margin, startY, leftW, row1H, 'F');
+    doc.rect(infoX, leftStartY, titleW, row1H, 'F');
     doc.setTextColor(255);
+    doc.setFontSize(7);
+    setFont('bold');
+    doc.text('KİTAPÇIK TÜRÜ', infoX + titleW / 2, leftStartY + 5.3, { align: 'center' });
+
+    // Middle part: White box with pink border for bubbles
+    var optionsX = infoX + titleW + boxGap;
+    doc.setDrawColor(pR, pG, pB);
+    doc.setLineWidth(0.3); // Standardized thickness
+    doc.rect(optionsX, leftStartY, optionsW, row1H); // White box with border
+
+    // Bubbles (A B C D) in pink
+    var ktBubs = ['A', 'B', 'C', 'D'];
+    var bubGap = optionsW / (ktBubs.length + 1);
+
+    for (var k = 0; k < ktBubs.length; k++) {
+      var bx = optionsX + bubGap * (k + 1);
+
+      // Draw circle
+      doc.setDrawColor(pR, pG, pB);
+      doc.setLineWidth(0.3); // Standardized thickness
+      doc.circle(bx, leftStartY + 4, 2, 'S');
+
+      // Draw text
+      doc.setTextColor(pR, pG, pB);
+      doc.setFontSize(5.5);
+      setFont('bold');
+      doc.text(ktBubs[k], bx, leftStartY + 4.65, { align: 'center' });
+    }
+
+    // Right part: Text (Centered in remaining box width, Black)
+    // Reduce textX to shift left, then center block
+    textX = textX - 32; // Shifted even further left to sit tightly next to the box
+    var textRemainingW = (pageWidth - margin) - textX;
+
     doc.setFontSize(6);
     setFont('bold');
-    doc.text('KİTAPÇIK TÜRÜ', margin + 2, startY + 4);
+    doc.setTextColor(0); // Black text
+    doc.text('Kitapçık Türünü', textX + textRemainingW / 2, leftStartY + 3, { align: 'center' });
+    doc.text('Kodlamayı Unutmayınız.', textX + textRemainingW / 2, leftStartY + 6, { align: 'center' });
+
+    // Reset colors
     doc.setTextColor(0);
+    doc.setDrawColor(0);
+    doc.setDrawColor(0);
 
-    // Bubbles (1 2 3 4 5) - Right aligned in header? 
-    // Image shows white circles with numbers inside the pink header or just below?
-    // Image: "KİTAPÇIK TÜRÜ" text left, bubbles right. Bubbles seem to be in white boxes or just circles.
-    // Let's put white circles in the pink header for valid visual.
-    var ktBubs = ['1', '2', '3', '4', '5'];
-    for (var k = 0; k < ktBubs.length; k++) {
-      var bx = margin + leftW - 35 + k * 6;
-      doc.setFillColor(255);
-      doc.circle(bx, startY + 3, 2, 'F');
-      doc.setTextColor(0);
-      doc.setFontSize(5);
-      doc.text(ktBubs[k], bx - 0.6, startY + 3.8);
-    }
-
-    // 2. TC / CEP & SINIF / ŞUBE / GRUP (Side by Side)
-    var row2Y = startY + row1H + 2;
-
-    // Col 1: TC (11 cols)
-    // Col 2: Sınıf(2)+Şube(1)+Grup(2) = 5 cols.
-    // Total 16 cols. 
-    var colW = leftW / 16;
-
-    // Headers
-    var header2H = 10;
-    var tcWidth = colW * 11;
-    var sgWidth = leftW - tcWidth - 2; // Gap 2mm
-
-    // TC Header
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(margin, row2Y, tcWidth, header2H, 'F');
-    doc.setTextColor(255);
-    doc.setFontSize(5);
-    doc.text('T.C. KİMLİK NO. / CEP TEL. NO.', margin + tcWidth / 2, row2Y + 6, { align: 'center' });
-
-    // SG Header
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(margin + tcWidth + 1, row2Y, sgWidth, header2H, 'F');
-
-    // SG Sub-labels (SINIF | ŞUBE | GRUP NO)
-    // Sınıf (2), Şube (1), Grup (2)
-    var subColW = sgWidth / 5;
-    doc.text('SINIF', margin + tcWidth + 1 + subColW, row2Y + 3, { align: 'center' });
-    doc.text('ŞUBE', margin + tcWidth + 1 + subColW * 2.5, row2Y + 3, { align: 'center' });
-    doc.text('GRUP NO', margin + tcWidth + 1 + subColW * 4, row2Y + 3, { align: 'center' });
-
-    // White boxes for writing?
-    // Visual shows boxes below header.
-    doc.setDrawColor(pR, pG, pB);
-    var writeBoxH = 4;
-    var writeY = row2Y + header2H;
-
-    // TC Write Boxes
-    var tcVal = (student.tc || '').replace(/[^0-9]/g, '');
-    for (var i = 0; i < 11; i++) {
-      doc.rect(margin + i * colW, writeY, colW, writeBoxH);
-      if (i < tcVal.length) {
-        doc.setTextColor(0); doc.text(tcVal[i], margin + i * colW + colW / 2 - 0.5, writeY + 3);
-      }
-    }
-
-    // SG Write Boxes
-    var sgX = margin + tcWidth + 1;
-    var sgSubW = sgWidth / 5;
-    // Sınıf (2)
-    for (var i = 0; i < 2; i++) doc.rect(sgX + i * sgSubW, writeY, sgSubW, writeBoxH);
-    // Şube (1)
-    doc.rect(sgX + 2 * sgSubW, writeY, sgSubW, writeBoxH);
-    // Grup (2)
-    for (var i = 0; i < 2; i++) doc.rect(sgX + (3 + i) * sgSubW, writeY, sgSubW, writeBoxH);
-
-
-    // Bubbles
-    var gridY = writeY + writeBoxH;
-    var bubbleGap = 3.5;
-    var rows = 10; // 0-9
-
-    // TC Bubbles 0-9
-    for (var r = 0; r < 10; r++) {
-      var by = gridY + 2 + r * bubbleGap;
-      for (var c = 0; c < 11; c++) {
-        var isFilled = (tcVal[c] === String(r));
-        drawSimpleBubble(doc, margin + c * colW + colW / 2, by, 1.4, String(r), isFilled, pR, pG, pB);
-      }
-    }
-
-    // SG Bubbles
-    // Sınıf (0-9)
-    for (var r = 0; r < 10; r++) {
-      var by = gridY + 2 + r * bubbleGap;
-      for (var c = 0; c < 2; c++) {
-        // Determine dummy class val?
-        drawSimpleBubble(doc, sgX + c * sgSubW + sgSubW / 2, by, 1.4, String(r), false, pR, pG, pB);
-      }
-      // Grup (0-9) - Cols 3,4 (indices 3,4 of 5)
-      for (var c = 3; c < 5; c++) {
-        drawSimpleBubble(doc, sgX + c * sgSubW + sgSubW / 2, by, 1.4, String(r), false, pR, pG, pB);
-      }
-    }
-    // Şube (A-Z) - Needs more vertical space!
-    // The image shows the layout stretches down.
-    // Şube is Col index 2.
-    var alphabet = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ";
-    for (var r = 0; r < alphabet.length; r++) {
-      var by = gridY + 2 + r * 3.0; // tighter gap
-      drawSimpleBubble(doc, sgX + 2 * sgSubW + sgSubW / 2, by, 1.4, alphabet[r], false, pR, pG, pB);
-    }
-
-
-    // 3. SOYADI - ADI GRID
-    var nameY = gridY + 10 * bubbleGap + 5; // Start after TC grid
-    var nameH = 6;
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(margin, nameY, leftW, nameH, 'F');
-    doc.setTextColor(255);
-    doc.setFontSize(5);
-    doc.text('SOYADI - ADI (Soyadı, adı arasına bir karakter boşluk bırakınız.)', margin + 2, nameY + 4);
-
-    var nameGridY = nameY + nameH;
-    // 20 cols? Match width
-    var nameCols = 20;
-    var nameColW = leftW / nameCols;
-
-    var nameStr = (student.name || '').toLocaleUpperCase('tr-TR');
-
-    // Bubbles A-Z
-    for (var r = 0; r < alphabet.length; r++) {
-      var by = nameGridY + 2 + r * 3.0;
-      var char = alphabet[r];
-      for (var c = 0; c < nameCols; c++) {
-        var isFilled = (nameStr[c] === char);
-        var bx = margin + c * nameColW + nameColW / 2;
-
-        // Draw bubble circle
-        if (isFilled) {
-          doc.setFillColor(0);
-          doc.circle(bx, by, 1.3, 'F');
-          doc.setTextColor(255);
-        } else {
-          doc.setDrawColor(pR, pG, pB);
-          doc.setLineWidth(0.1);
-          doc.circle(bx, by, 1.3, 'S');
-          doc.setTextColor(pR, pG, pB);
-        }
-        doc.setFontSize(3.5);
-        doc.text(char, bx - 0.4, by + 0.4);
-      }
-    }
-    doc.setTextColor(0);
+    // 2. TC / CEP & SINIF / ŞUBE / GRUP REMOVED AS REQUESTED
+    // 3. SOYADI - ADI GRID REMOVED AS REQUESTED
 
 
     // ================= RIGHT BLOCK =================
 
-    // 1. Headers (OTURUM, TEPM)
-    var headerH = 8;
-    // OTURUM
-    var oturumW = rightW * 0.4;
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(rightX, startY, oturumW, headerH, 'F');
-    doc.setTextColor(255);
-    doc.setFontSize(6);
-    doc.text('OTURUM', rightX + 2, startY + 5);
-
-    // Bubbles 1. OTURUM, 2. OTURUM
-    doc.circle(rightX + 25, startY + 4, 2, 'S'); doc.text('1. OTURUM', rightX + 20, startY + 7.5);
-    doc.circle(rightX + 45, startY + 4, 2, 'S'); doc.text('2. OTURUM', rightX + 40, startY + 7.5);
-
-    // TEPM (ALAN)
-    var alanX = rightX + oturumW + 2;
-    var alanW = rightW - oturumW - 2;
-    doc.setFillColor(pR, pG, pB);
-    doc.rect(alanX, startY, alanW, headerH, 'F');
-    doc.text('TEPM', alanX + 2, startY + 5); // Label as TEPM or ALAN
-    // 4 Bubbles
-    var alans = ['SÖZEL', 'SAYISAL', 'E.A.', 'DİL'];
-    for (var a = 0; a < alans.length; a++) {
-      var abx = alanX + 10 + a * 12;
-      doc.circle(abx, startY + 3, 2, 'S');
-      doc.setFontSize(4);
-      doc.text(alans[a], abx - 2, startY + 7);
-    }
-
+    // The OTURUM and TEPM headers were removed per user request.
 
     // 2. Answer Columns (4 Cols)
-    var colsY = startY + headerH + 2;
-    var colGap = 2;
-    var ansColW = (rightW - 3 * colGap) / 4;
+    var colsY = rightStartY; // Start columns at the top of the right block
+
+    // Center the group across the entire page content width and increase gap
+    var colGap = 12; // Increased to 12 for wider spacing
+    var totalColW = contentW * 0.85; // Use 85% of the total available width
+    var ansColW = (totalColW - 3 * colGap) / 4;
+
+    // Center the columns block horizontally across the entire page
+    var colsStartX = margin + (contentW - totalColW) / 2;
 
     var colTitles = [
-      ['TÜRKÇE', 'T. DİLİ VE EDEB.', 'SOSYAL BİL. 1'],
-      ['SOSYAL', 'BİLİMLER', 'SOSYAL', 'BİLİMLER 2'],
-      ['TEMEL', 'MATEMATİK', '', 'MATEMATİK'],
-      ['FEN', 'BİLİMLERİ', '', 'FEN BİLİMLERİ']
+      { top: ['TÜRKÇE'], bot: ['TÜRK DİLİ VE EDEBİYATI', 'SOSYAL BİLİMLER 1'] },
+      { top: ['SOSYAL', 'BİLİMLER'], bot: ['SOSYAL', 'BİLİMLER 2'] },
+      { top: ['TEMEL', 'MATEMATİK'], bot: ['MATEMATİK'] },
+      { top: ['FEN', 'BİLİMLERİ'], bot: ['FEN', 'BİLİMLERİ'] }
     ];
 
     for (var i = 0; i < 4; i++) {
-      var cx = rightX + i * (ansColW + colGap);
+      var cx = colsStartX + i * (ansColW + colGap);
 
-      // Header Box
+      // We split the header into two taller boxes
+      var boxH = 8; // Increased from 5.8 to 8 for more height
+      var gapH = 0.4;
+      var topY = colsY;
+      var botY = colsY + boxH + gapH;
+
+      // Draw Top Box
       doc.setFillColor(pR, pG, pB);
-      doc.rect(cx, colsY, ansColW, 12, 'F'); // Tall header
-      doc.setTextColor(255);
-      doc.setFontSize(4.5);
+      doc.rect(cx, topY, ansColW, boxH, 'F');
 
-      // Titles (Multi line)
-      var tlines = colTitles[i];
-      tlines.forEach(function (l, idx) {
-        doc.text(l, cx + ansColW / 2, colsY + 3 + idx * 2.5, { align: 'center' });
-      });
+      // Draw Bottom Box
+      doc.rect(cx, botY, ansColW, boxH, 'F');
+
+      doc.setTextColor(255);
+      doc.setFontSize(7); // Matched with KİTAPÇIK TÜRÜ
+
+      var data = colTitles[i];
+
+      // Helper to draw text vertically centered in a taller box
+      var drawCenteredLines = function (lines, boxStartY) {
+        if (lines.length === 1) {
+          doc.text(lines[0], cx + ansColW / 2, boxStartY + 5.5, { align: 'center' });
+        } else if (lines.length === 2) {
+          doc.text(lines[0], cx + ansColW / 2, boxStartY + 3.8, { align: 'center' });
+          doc.text(lines[1], cx + ansColW / 2, boxStartY + 7.0, { align: 'center' });
+        }
+      };
+
+      // Draw Top Texts
+      drawCenteredLines(data.top, topY);
+
+      // Draw Bottom Texts
+      drawCenteredLines(data.bot, botY);
 
       // 1-40 Answer Grid
-      var gridY = colsY + 12 + 2;
-      var rGap = 3.2;
+      var headerTotalH = boxH * 2 + gapH; // 16.4
+      var gapBelowHeader = 1.0; // Reduced white space separating headers from the grid
+      var borderY = colsY + headerTotalH + gapBelowHeader;
+      var rGap = 4.8; // Vertical spacing between rows
+      var gridY = borderY + rGap / 2 + 1.0; // Added 1.0 units of top padding inside the grid
 
       for (var q = 1; q <= 40; q++) {
         var qy = gridY + (q - 1) * rGap;
 
-        // Zebra striping for 5s?
-        if (Math.ceil(q / 5) % 2 === 0) {
-          // doc.setFillColor(240, 240, 240);
-          // doc.rect(cx, qy-2, ansColW, rGap, 'F');
+        // Zebra striping for even rows to improve readability
+        if (q % 2 === 0) {
+          doc.setFillColor(250, 230, 240); // Very light pink
+          // doc.rect(x, y, w, h, style)
+          doc.rect(cx, qy - rGap / 2, ansColW, rGap, 'F');
         }
 
         // Q Num
         doc.setTextColor(0);
-        doc.setFontSize(5);
-        doc.text(String(q), cx + 2, qy + 1);
+        doc.setFontSize(5.5); // Slightly larger
+        doc.text(String(q), cx + 1.5, qy + 1.5);
 
         // Bubbles A-E
         var opts = ['A', 'B', 'C', 'D', 'E'];
-        var optW = (ansColW - 6) / 5;
+        // Added 3 units of right padding so bubbles don't touch the right border
+        var optW = (ansColW - 6 - 3) / 5;
         for (var o = 0; o < 5; o++) {
           var obx = cx + 6 + o * optW + optW / 2;
           doc.setDrawColor(pR, pG, pB);
-          doc.setLineWidth(0.15); // Thinner
-          doc.circle(obx, qy, 1.3, 'S'); // Circle
+          doc.setLineWidth(0.3); // Standardized thickness
+          doc.circle(obx, qy, 1.75, 'S'); // Make bubbles bigger (radius from 1.5 to 1.75)
           doc.setTextColor(pR, pG, pB);
-          doc.setFontSize(3.5);
-          doc.text(opts[o], obx - 0.4, qy + 0.4);
+          doc.setFontSize(5.5); // Bigger text inside bubbles (from 4.5 to 5.5)
+          doc.text(opts[o], obx, qy + 0.65, { align: 'center' }); // Automatically center
         }
       }
+
+      // Draw outer border for the answer grid (distinct from headers)
+      doc.setDrawColor(pR, pG, pB);
+      doc.setLineWidth(0.3); // Standardized thickness
+      var gridH = 40 * rGap + 2.0; // Accounts for the 1.0 top padding and adds 1.0 bottom padding
+      doc.rect(cx, borderY, ansColW, gridH);
     }
   }
 
@@ -2701,7 +2482,7 @@
       doc.setTextColor(255);
     } else {
       doc.setDrawColor(pR, pG, pB);
-      doc.setLineWidth(0.15);
+      doc.setLineWidth(0.3); // Standardized thickness
       doc.circle(x, y, r, 'S');
       doc.setTextColor(pR, pG, pB);
     }
@@ -2778,6 +2559,58 @@
       var txtW = doc.getTextWidth(text);
       doc.text(text, cx - (txtW / 2), cy + 1.2);
     }
+  }
+
+
+  function generateQRCodeDataURL(text) {
+    if (typeof QRCode === 'undefined') return null;
+
+    // Create a temporary, isolated container for this specific QR code
+    var tempContainer = document.createElement('div');
+    tempContainer.style.display = 'none';
+    document.body.appendChild(tempContainer);
+
+    var dataURL = null;
+
+    try {
+      // Create a simplified ASCII-only version of the text to prevent QRCode.js from failing on Special/Turkish characters
+      var safeText = text
+        .replace(/ı/g, 'i').replace(/İ/g, 'I')
+        .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+        .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+        .replace(/ş/g, 's').replace(/Ş/g, 'S')
+        .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+        .replace(/ç/g, 'c').replace(/Ç/g, 'C');
+
+      // Ensure it's safe ASCII
+      var encodedText = unescape(encodeURIComponent(safeText));
+
+      var qr = new QRCode(tempContainer, {
+        text: encodedText,
+        width: 256,
+        height: 256,
+        correctLevel: QRCode.CorrectLevel.M // Lower error correction to fit more data if needed
+      });
+
+      // QRCode.js (when using canvas) draws synchronously. 
+      var canvas = tempContainer.querySelector('canvas');
+      if (canvas) {
+        dataURL = canvas.toDataURL("image/png");
+      } else {
+        // Fallback for img (might be async if it uses a data URI, but usually sync for small data)
+        var img = tempContainer.querySelector('img');
+        if (img && img.src) {
+          dataURL = img.src;
+        }
+      }
+    } catch (e) {
+      console.error("QR Code generation failed:", e);
+    } finally {
+      // Clean up the temporary container
+      document.body.removeChild(tempContainer);
+    }
+
+    return dataURL;
   }
 
   document.addEventListener('DOMContentLoaded', init);

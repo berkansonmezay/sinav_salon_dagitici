@@ -27,9 +27,10 @@ APP_CSS=$(cat "$SRC_DIR/style.css")
 APP_JS=$(cat "$SRC_DIR/app.js")
 
 # Read library files
-XLSX_JS=$(cat "$LIBS_DIR/xlsx.full.min.js")
-JSPDF_JS=$(cat "$LIBS_DIR/jspdf.umd.min.js")
-AUTOTABLE_JS=$(cat "$LIBS_DIR/jspdf-autotable.min.js")
+XLSX_JS=$(cat "$LIBS_DIR/xlsx.full.min.js" | sed '/sourceMappingURL/d')
+JSPDF_JS=$(cat "$LIBS_DIR/jspdf.umd.min.js" | sed '/sourceMappingURL/d')
+AUTOTABLE_JS=$(cat "$LIBS_DIR/jspdf-autotable.min.js" | sed '/sourceMappingURL/d')
+QRCODE_JS=$(cat "$LIBS_DIR/qrcode.min.js")
 
 # Read HTML template
 HTML_TEMPLATE=$(cat "$SRC_DIR/template.html")
@@ -91,6 +92,9 @@ echo "$JSPDF_JS"
 echo '</script>'
 echo '<script>'
 echo "$AUTOTABLE_JS"
+echo '</script>'
+echo '<script>'
+echo "$QRCODE_JS"
 echo '</script>'
 echo '<script>'
 echo "$APP_JS"
