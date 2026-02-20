@@ -2044,7 +2044,7 @@
 
     var opts = ['A', 'B', 'C', 'D'];
     var leftSpace = 7; // Reserved for question number
-    var rightPadding = 2; // Reserved for right margin
+    var rightPadding = 4; // Increased to 4 to prevent touching the border
     var activeWidth = availWidth - leftSpace - rightPadding;
     var optGap = activeWidth / (opts.length - 1); // Space between bubble centers
     var startOptX = x + leftSpace; // Center of the first bubble (well, center-ish if we use obx)
