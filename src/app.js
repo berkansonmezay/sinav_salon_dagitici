@@ -1964,9 +1964,9 @@
     doc.setTextColor(0);
 
     // Columns
-    var colY = startY + headerH + 2;
+    var colY = startY + headerH + 4; // Increased gap to 4
     var subHeadH = 10;
-    var gapBelowSubHead = 1.0;
+    var gapBelowSubHead = 3.0; // Increased gap to 3.0
     var borderY = colY + subHeadH + gapBelowSubHead;
     var gridTopPadding = 1.0;
     var rowGap = 6.5; // Increased row gap for LGS
