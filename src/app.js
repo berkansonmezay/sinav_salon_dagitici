@@ -1873,7 +1873,7 @@
     doc.setDrawColor(0);
 
     // ============ BOTTOM BLOCK (SÖZEL / SAYISAL) ============
-    var bottomY = kitapcikY + row1H + 10;
+    var bottomY = kitapcikY + row1H + 14;
     drawLGSLayout(doc, bottomY, pR, pG, pB);
 
     // ============ FOOTER ============
