@@ -2408,9 +2408,9 @@
 
     // ============ REFINED LAYOUT (BELOW DİKKAT) ============
     // Kitapçık Türü now below DİKKAT block. 
-    var leftStartY = dikkatY + dikkatH + 7; // Increased from 4 to 7 units below DİKKAT
-    // Görseldeki şikayete istinaden boşluğu artırıyoruz (8+4 ten 8+7 ye çıkardık)
-    var rightStartY = leftStartY + 8 + 7;  // Increased gap before Answer columns start
+    var leftStartY = dikkatY + dikkatH + 5; // Reduced from 7 to 5
+    // Görseldeki şikayete istinaden boşluğu artırmıştık, taşma nedeniyle hafif daraltıyoruz
+    var rightStartY = leftStartY + 8 + 5;  // Reduced from 7 to 5
     drawRefinedTYTLayout(doc, leftStartY, rightStartY, pR, pG, pB, student);
 
 
@@ -2564,7 +2564,7 @@
       var headerTotalH = boxH * 2 + gapH; // 16.4
       var gapBelowHeader = 1.0; // Reduced white space separating headers from the grid
       var borderY = colsY + headerTotalH + gapBelowHeader;
-      var rGap = 4.8; // Vertical spacing between rows
+      var rGap = 4.6; // Reduced from 4.8 to fit 40 rows within A4 height
       var gridY = borderY + rGap / 2 + 1.0; // Added 1.0 units of top padding inside the grid
 
       for (var q = 1; q <= 40; q++) {
