@@ -4479,13 +4479,15 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
     // 2. Answer Columns (4 Cols)
     var colsY = rightStartY; // Start columns at the top of the right block
 
-    // Center the group across the entire page content width and increase gap
-    var colGap = 12; // Increased to 12 for wider spacing
-    var totalColW = contentW * 0.85; // Use 85% of the total available width
-    var ansColW = (totalColW - 3 * colGap) / 4;
+    // Refined distribution: First column at left edge (margin), last column at right edge (wider content area)
+    var leftMargin = 12; // Consistent with drawOpticalForm
+    var rightMargin = 6;
+    var totalAvailableWidth = pageWidth - leftMargin - rightMargin; // 192mm
 
-    // Center the columns block horizontally across the entire page
-    var colsStartX = margin + (contentW - totalColW) / 2;
+    // Calculate column width to fit content properly
+    var ansColW = 42; // Fixed column width for TYT/AYT
+    var colGap = (totalAvailableWidth - 4 * ansColW) / 3; // Evenly distribute gaps
+    var colsStartX = leftMargin;
 
     var colTitles = [
       { top: ['TÜRKÇE'], bot: ['TÜRK DİLİ VE EDEBİYATI', 'SOSYAL BİLİMLER 1'] },
