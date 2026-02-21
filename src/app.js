@@ -2358,9 +2358,8 @@
     doc.setFontSize(5.5);
     setFont('bold');
 
-    // "Kodlamalarınızı lütfen yumuşak kurşun kalem ile yapınız." 
-    doc.text('Kodlamalarınızı lütfen yumuşak', textX + remainingW / 2, dikkatY + 3, { align: 'center' });
-    doc.text('kurşun kalem ile yapınız.', textX + remainingW / 2, dikkatY + 6, { align: 'center' });
+    // Guidance text removed as requested
+
 
     // ============ REFINED LAYOUT (BELOW DİKKAT) ============
     // Kitapçık Türü now below DİKKAT block. 
@@ -2443,8 +2442,8 @@
     doc.setFontSize(6);
     setFont('bold');
     doc.setTextColor(0); // Black text
-    doc.text('Kitapçık Türünü', textX + textRemainingW / 2, leftStartY + 3, { align: 'center' });
-    doc.text('Kodlamayı Unutmayınız.', textX + textRemainingW / 2, leftStartY + 6, { align: 'center' });
+    // Booklet reminder removed as requested
+
 
     // Reset colors
     doc.setTextColor(0);
