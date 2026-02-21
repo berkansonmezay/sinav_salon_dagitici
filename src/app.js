@@ -2512,8 +2512,8 @@
     var totalAvailableWidth = pageWidth - leftMargin - rightMargin; // 186mm
 
     // Narrowed column width as requested
-    var ansColW = 36;
-    var colGap = (totalAvailableWidth - 4 * ansColW) / 3; // Evenly distribute gaps: (186 - 144) / 3 = 14mm
+    var ansColW = 33;
+    var colGap = (totalAvailableWidth - 4 * ansColW) / 3; // Evenly distribute gaps: (186 - 132) / 3 = 18mm
     var colsStartX = leftMargin;
 
     var colTitles = [
