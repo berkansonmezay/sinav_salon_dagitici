@@ -2507,13 +2507,13 @@
     var colsY = rightStartY; // Start columns at the top of the right block
 
     // Refined distribution: First column at left edge (margin), last column at right edge (wider content area)
-    var leftMargin = 12; // Consistent with drawOpticalForm
+    var leftMargin = 18; // Increased from 12 to 18 to create more gap from timing marks
     var rightMargin = 6;
-    var totalAvailableWidth = pageWidth - leftMargin - rightMargin; // 192mm
+    var totalAvailableWidth = pageWidth - leftMargin - rightMargin; // 186mm
 
     // RESTORED original column width as requested
     var ansColW = 39;
-    var colGap = (totalAvailableWidth - 4 * ansColW) / 3; // Evenly distribute gaps: (192 - 156) / 3 = 12mm
+    var colGap = (totalAvailableWidth - 4 * ansColW) / 3; // Evenly distribute gaps: (186 - 156) / 3 = 10mm
     var colsStartX = leftMargin;
 
     var colTitles = [
