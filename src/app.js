@@ -2075,7 +2075,7 @@
     doc.setTextColor(255);
     doc.setFontSize(10);
     setFont('bold');
-    doc.text('SÖZEL BÖLÜM', pageMargin + sozelW / 2, startY + 5, { align: 'center' });
+    doc.text('SÖZEL BÖLÜM', leftMargin + sozelW / 2, startY + 5, { align: 'center' });
 
     // SAYISAL Header
     doc.setFillColor(pR, pG, pB);
