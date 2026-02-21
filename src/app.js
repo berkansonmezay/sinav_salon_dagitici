@@ -1578,7 +1578,107 @@
       });
     });
 
+    // Project Export
+    document.getElementById('btn-export-project').addEventListener('click', function () {
+      exportProject();
+    });
+
+    // Project Import
+    document.getElementById('btn-import-project').addEventListener('click', function () {
+      document.getElementById('project-file-input').click();
+    });
+
+    document.getElementById('project-file-input').addEventListener('change', function (e) {
+      if (e.target.files.length > 0) {
+        importProject(e.target.files[0]);
+      }
+    });
+
   } // End setupEventListeners
+
+  function exportProject() {
+    var data = {
+      version: '1.0',
+      state: {
+        step: state.step,
+        students: state.students,
+        rooms: state.rooms,
+        distribution: state.distribution,
+        examInfo: state.examInfo,
+        opticalFormType: state.opticalFormType
+      }
+    };
+
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.href = url;
+    a.download = 'sinav_ayarlari_' + timestamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Ayar dosyası indirildi.', 'success');
+  }
+
+  function importProject(file) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        if (!data || !data.state) throw new Error('Geçersiz ayar dosyası.');
+
+        // Restore state
+        var s = data.state;
+        state.students = s.students || [];
+        state.rooms = s.rooms || [];
+        state.distribution = s.distribution || null;
+        state.examInfo = s.examInfo || { name: '', date: '', time: '', institution: '', location: '' };
+        state.opticalFormType = s.opticalFormType || null;
+        state.step = s.step || 1;
+        state.studentPage = 1;
+        state.roomPage = 1;
+
+        // Sync UI
+        updateUI();
+        if (state.students.length > 0) {
+          DOM.studentPreview.classList.remove('hidden');
+          DOM.studentUploadArea.classList.add('hidden');
+          renderStudentTable();
+        } else {
+          DOM.studentPreview.classList.add('hidden');
+          DOM.studentUploadArea.classList.remove('hidden');
+        }
+
+        renderRoomTable();
+        updateExamInfoUI();
+
+        if (state.distribution) {
+          renderDistributionResults();
+        }
+
+        // Handle optical form selection sync if needed
+        if (state.opticalFormType) {
+          var radio = document.querySelector('input[name="optical-type"][value="' + state.opticalFormType + '"]');
+          if (radio) {
+            radio.checked = true;
+            // Trigger the change event logic manually or simulate event
+            var event = new Event('change');
+            radio.dispatchEvent(event);
+          }
+        }
+
+        showToast('Ayarlar başarıyla geri yüklendi.', 'success');
+        document.getElementById('project-file-input').value = '';
+
+      } catch (err) {
+        console.error(err);
+        showToast('Ayar yükleme hatası: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+  }
 
 
 

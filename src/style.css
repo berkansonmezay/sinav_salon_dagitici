@@ -82,6 +82,28 @@ header {
   border: 1px solid var(--border-light);
 }
 
+.project-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.project-actions .btn {
+  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.project-actions .btn:hover {
+  background: var(--primary-bg);
+  border-color: var(--primary-light);
+}
+
 header::before {
   content: '';
   position: absolute;

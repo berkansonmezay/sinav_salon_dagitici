@@ -90,6 +90,28 @@ header {
   border: 1px solid var(--border-light);
 }
 
+.project-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.project-actions .btn {
+  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.project-actions .btn:hover {
+  background: var(--primary-bg);
+  border-color: var(--primary-light);
+}
+
 header::before {
   content: '';
   position: absolute;
@@ -1022,6 +1044,25 @@ tbody tr.editing {
 <div class="app-container">
   <!-- Header -->
   <header>
+    <div class="project-actions">
+      <button id="btn-export-project" class="btn btn-sm btn-ghost" title="Mevcut verileri .json olarak kaydet">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+          <polyline points="17 21 17 13 7 13 7 21" />
+          <polyline points="7 3 7 8 15 8" />
+        </svg>
+        Projeyi Kaydet
+      </button>
+      <button id="btn-import-project" class="btn btn-sm btn-ghost" title="Daha önce kaydedilen projeyi yükle">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+        Proje Yükle
+      </button>
+      <input type="file" id="project-file-input" accept=".json" hidden />
+    </div>
     <img id="header-logo" class="header-logo" alt="Logo" />
     <h1>Otomatik Sınav Salon Dağıtım Uygulaması</h1>
     <p>Öğrenci listelerini yükleyin, salonları tanımlayın ve tek tıkla otomatik dağıtım yapın.</p>
@@ -3509,7 +3550,107 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
       });
     });
 
+    // Project Export
+    document.getElementById('btn-export-project').addEventListener('click', function () {
+      exportProject();
+    });
+
+    // Project Import
+    document.getElementById('btn-import-project').addEventListener('click', function () {
+      document.getElementById('project-file-input').click();
+    });
+
+    document.getElementById('project-file-input').addEventListener('change', function (e) {
+      if (e.target.files.length > 0) {
+        importProject(e.target.files[0]);
+      }
+    });
+
   } // End setupEventListeners
+
+  function exportProject() {
+    var data = {
+      version: '1.0',
+      state: {
+        step: state.step,
+        students: state.students,
+        rooms: state.rooms,
+        distribution: state.distribution,
+        examInfo: state.examInfo,
+        opticalFormType: state.opticalFormType
+      }
+    };
+
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.href = url;
+    a.download = 'sinav_ayarlari_' + timestamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Ayar dosyası indirildi.', 'success');
+  }
+
+  function importProject(file) {
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        if (!data || !data.state) throw new Error('Geçersiz ayar dosyası.');
+
+        // Restore state
+        var s = data.state;
+        state.students = s.students || [];
+        state.rooms = s.rooms || [];
+        state.distribution = s.distribution || null;
+        state.examInfo = s.examInfo || { name: '', date: '', time: '', institution: '', location: '' };
+        state.opticalFormType = s.opticalFormType || null;
+        state.step = s.step || 1;
+        state.studentPage = 1;
+        state.roomPage = 1;
+
+        // Sync UI
+        updateUI();
+        if (state.students.length > 0) {
+          DOM.studentPreview.classList.remove('hidden');
+          DOM.studentUploadArea.classList.add('hidden');
+          renderStudentTable();
+        } else {
+          DOM.studentPreview.classList.add('hidden');
+          DOM.studentUploadArea.classList.remove('hidden');
+        }
+
+        renderRoomTable();
+        updateExamInfoUI();
+
+        if (state.distribution) {
+          renderDistributionResults();
+        }
+
+        // Handle optical form selection sync if needed
+        if (state.opticalFormType) {
+          var radio = document.querySelector('input[name="optical-type"][value="' + state.opticalFormType + '"]');
+          if (radio) {
+            radio.checked = true;
+            // Trigger the change event logic manually or simulate event
+            var event = new Event('change');
+            radio.dispatchEvent(event);
+          }
+        }
+
+        showToast('Ayarlar başarıyla geri yüklendi.', 'success');
+        document.getElementById('project-file-input').value = '';
+
+      } catch (err) {
+        console.error(err);
+        showToast('Ayar yükleme hatası: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+  }
 
 
 
