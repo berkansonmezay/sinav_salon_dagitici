@@ -1404,7 +1404,7 @@ tbody tr.editing {
           Önceki Adım
         </button>
         <div style="display: flex; gap: 0.5rem;">
-          <button id="btn-generate-entry-docs" class="btn btn-outline">
+          <button id="btn-generate-entry-docs" class="btn btn-danger">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -3906,7 +3906,7 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
     var headerH = 7;
     // SÖZEL Header
     doc.setFillColor(pR, pG, pB);
-    doc.roundedRect(pageMargin, startY, sozelW, headerH, 1, 1, 'F');
+    doc.rect(pageMargin, startY, sozelW, headerH, 'F');
     doc.setTextColor(255);
     doc.setFontSize(10);
     setFont('bold');
@@ -3914,7 +3914,7 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
 
     // SAYISAL Header
     doc.setFillColor(pR, pG, pB);
-    doc.roundedRect(sayisalX, startY, sayisalW, headerH, 1, 1, 'F');
+    doc.rect(sayisalX, startY, sayisalW, headerH, 'F');
     doc.setTextColor(255);
     doc.setFontSize(10);
     setFont('bold');

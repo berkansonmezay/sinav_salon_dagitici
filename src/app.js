@@ -1975,7 +1975,7 @@
     var headerH = 7;
     // SÖZEL Header
     doc.setFillColor(pR, pG, pB);
-    doc.roundedRect(pageMargin, startY, sozelW, headerH, 1, 1, 'F');
+    doc.rect(pageMargin, startY, sozelW, headerH, 'F');
     doc.setTextColor(255);
     doc.setFontSize(10);
     setFont('bold');
@@ -1983,7 +1983,7 @@
 
     // SAYISAL Header
     doc.setFillColor(pR, pG, pB);
-    doc.roundedRect(sayisalX, startY, sayisalW, headerH, 1, 1, 'F');
+    doc.rect(sayisalX, startY, sayisalW, headerH, 'F');
     doc.setTextColor(255);
     doc.setFontSize(10);
     setFont('bold');
