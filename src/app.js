@@ -2331,66 +2331,22 @@
     doc.text('DİKKAT', infoX + dikkatW / 2, dikkatY + (dikkatH / 2) + 1, { align: 'center' }); // Vertically centered
     doc.setTextColor(0);
 
-    // 2. Yanlış kodlama Box (White with Pink Border)
-    var yanlisX = infoX + dikkatW + gapBetweenBoxes; // Added gap
-    var yanlisW = 38;
-    doc.setDrawColor(pR, pG, pB);
-    doc.setLineWidth(0.3);
-    doc.rect(yanlisX, dikkatY, yanlisW, dikkatH);
-
-    doc.setTextColor(pR, pG, pB);
-    doc.setFontSize(5.5);
-    setFont('bold');
-    doc.text('Yanlış kodlama', yanlisX + yanlisW / 2, dikkatY + 3, { align: 'center' }); // Adjusted Y
-    doc.setTextColor(0);
-
-    // Examples: Circle with center dot, filled oval, tick, cross, scribble, dash
-    // We'll draw 5-6 small circles
-    var startCircX = yanlisX + 3.5;
-    var circY = dikkatY + 6; // Adjusted Y to be centered in new height
-    var gap = 5.5;
-
-    // All markings in black as requested
-    doc.setDrawColor(0);
-    doc.setFillColor(0);
-    doc.setTextColor(0);
-
-    // 1. Dot in center
-    doc.setLineWidth(0.3); // Standardized thickness for small bubbles
-    doc.circle(startCircX, circY, 1.8, 'S');
-    doc.circle(startCircX, circY, 0.5, 'F'); // Dot
-
-    // 2. Vertical Oval / Bean (Simulated)
-    doc.ellipse(startCircX + gap, circY, 1.0, 1.8, 'F'); // Filled ovalish
-
-    // 3. Tick
-    doc.circle(startCircX + gap * 2, circY, 1.8, 'S');
-    doc.setFontSize(5);
-    doc.text('✔', startCircX + gap * 2 - 1, circY + 1.2);
-
-    // 4. Cross
-    doc.circle(startCircX + gap * 3, circY, 1.8, 'S');
-    doc.text('X', startCircX + gap * 3 - 1, circY + 1.2);
-
-    // 5. Scribble (Zigzag line)
-    doc.circle(startCircX + gap * 4, circY, 1.8, 'S');
-    doc.line(startCircX + gap * 4 - 1, circY, startCircX + gap * 4 + 1, circY);
-
-    // 6. Dash
-    doc.circle(startCircX + gap * 5, circY, 1.8, 'S');
-    doc.text('-', startCircX + gap * 5 - 0.5, circY + 1);
+    // 2. Yanlış kodlama Box REMOVED AS REQUESTED
 
     // 3. Doğru kodlama Box
-    var dogruX = yanlisX + yanlisW; // Keep attached to Yanlış kodlama box
+    var dogruX = infoX + dikkatW + gapBetweenBoxes;
     var dogruW = 22;
     doc.setDrawColor(pR, pG, pB);
     doc.rect(dogruX, dikkatY, dogruW, dikkatH);
 
     doc.setTextColor(pR, pG, pB);
+    doc.setFontSize(5.5);
+    setFont('bold');
     doc.text('Doğru kodlama', dogruX + dogruW / 2, dikkatY + 3, { align: 'center' }); // Adjusted Y
     doc.setTextColor(0);
 
     // Correct bubble (Black as requested)
+    var circY = dikkatY + 6; // Center in height
     doc.setDrawColor(0);
     doc.setFillColor(0);
     doc.circle(dogruX + dogruW / 2, circY, 1.8, 'F');
