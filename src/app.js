@@ -2511,9 +2511,9 @@
     var rightMargin = 6;
     var totalAvailableWidth = pageWidth - leftMargin - rightMargin; // 192mm
 
-    // Calculate column width to fit content properly
-    var ansColW = 42; // Fixed column width for TYT/AYT
-    var colGap = (totalAvailableWidth - 4 * ansColW) / 3; // Evenly distribute gaps
+    // RESTORED original column width as requested
+    var ansColW = 39;
+    var colGap = (totalAvailableWidth - 4 * ansColW) / 3; // Evenly distribute gaps: (192 - 156) / 3 = 12mm
     var colsStartX = leftMargin;
 
     var colTitles = [
