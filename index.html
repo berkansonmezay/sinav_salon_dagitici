@@ -3882,20 +3882,20 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
       if (window.fontRobotoRegular) doc.setFont('Roboto', style);
     };
     // Sola eklediğimiz ayar çizgilerine(timing marks) çarpmaması için 
-    // lgs iç şablon margin değerini (8 -> 14) artırıyoruz.
+    // lgs iç şablon margin değerini tekrar 14 yapıyoruz ki çizgilerle çakışmasın.
     var pageMargin = 14;
     var pageWidth = 210;
 
     // Sağ tarafta da aynı margin'i koruyoruz
-    var contentWidth = pageWidth - 2 * pageMargin;
+    var contentWidth = pageWidth - 2 * pageMargin; // 182
 
     // Split: SÖZEL (Left 4 cols) | SAYISAL (Right 2 cols)
-    // Sözel 4 columns: 20, 10, 10, 10
-    // Sayısal 2 columns: 20, 20
+    // Sözel 4 columns
+    // Sayısal 2 columns
 
-    // Sözel ile sayısal alanlar arasındaki boşluğu (gap) manuel ayarlayalım.
-    // Şablonun çok sıkışık olmaması için kolon genişliklerini biraz daraltıp arayı açabiliriz:
-    var colW = contentWidth / 6.5;
+    // Hem aralarda boşluk olsun hem de içeride baloncuklar ferah olsun diye
+    // bölen değerini 6.2 olarak ayarlıyoruz:
+    var colW = contentWidth / 6.2;
     var sozelW = colW * 4;
     var sayisalW = colW * 2;
     var gap = contentWidth - sozelW - sayisalW;
@@ -3936,14 +3936,15 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
       { title: 'DİN KÜLTÜRÜ\nVE\nAHLAK BİLGİSİ', q: 10 },
       { title: 'İNGİLİZCE', q: 10 }
     ];
-    var sColW = sozelW / 4;
+    var sColGap = 2.5; // Sütunlar arası boşluk
+    var sColW = (sozelW - 3 * sColGap) / 4;
 
     for (var i = 0; i < 4; i++) {
-      var cx = pageMargin + i * sColW;
+      var cx = pageMargin + i * (sColW + sColGap);
 
       // SubHeader
       doc.setFillColor(pR, pG, pB);
-      doc.rect(cx + 1, colY, sColW - 2, subHeadH, 'F');
+      doc.rect(cx, colY, sColW, subHeadH, 'F');
       doc.setTextColor(255);
       doc.setFontSize(7);
 
@@ -3956,13 +3957,13 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
 
       // Answers
       // Use the new rowGap
-      drawPinkAnswerColumn(doc, sozelCols[i].q, cx + 1, borderY + rowGap / 2 + gridTopPadding, sColW - 2, pR, pG, pB, rowGap);
+      drawPinkAnswerColumn(doc, sozelCols[i].q, cx, borderY + rowGap / 2 + gridTopPadding, sColW, pR, pG, pB, rowGap);
 
       // Individual Column Border
       var colGridH = sozelCols[i].q * rowGap + 2.0;
       doc.setDrawColor(pR, pG, pB);
       doc.setLineWidth(0.3);
-      doc.rect(cx + 1, borderY, sColW - 2, colGridH);
+      doc.rect(cx, borderY, sColW, colGridH);
     }
 
     // SAYISAL Columns
@@ -3970,26 +3971,27 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
       { title: 'MATEMATİK', q: 20 },
       { title: 'FEN BİLİMLERİ', q: 20 }
     ];
-    var mColW = sayisalW / 2;
+    var mColGap = 2.5; // Sütunlar arası boşluk
+    var mColW = (sayisalW - 1 * mColGap) / 2;
 
     for (var j = 0; j < 2; j++) {
-      var cx = sayisalX + j * mColW;
+      var cx = sayisalX + j * (mColW + mColGap);
 
       // SubHeader
       doc.setFillColor(pR, pG, pB);
-      doc.rect(cx + 1, colY, mColW - 2, subHeadH, 'F');
+      doc.rect(cx, colY, mColW, subHeadH, 'F');
       doc.setTextColor(255);
       doc.setFontSize(7);
       doc.text(sayisalColsVals[j].title, cx + mColW / 2, colY + subHeadH / 2 + 1.2, { align: 'center' });
 
       // Answers
-      drawPinkAnswerColumn(doc, sayisalColsVals[j].q, cx + 1, borderY + rowGap / 2 + gridTopPadding, mColW - 2, pR, pG, pB, rowGap);
+      drawPinkAnswerColumn(doc, sayisalColsVals[j].q, cx, borderY + rowGap / 2 + gridTopPadding, mColW, pR, pG, pB, rowGap);
 
       // Individual Column Border
       var colGridH = sayisalColsVals[j].q * rowGap + 2.0;
       doc.setDrawColor(pR, pG, pB);
       doc.setLineWidth(0.3);
-      doc.rect(cx + 1, borderY, mColW - 2, colGridH);
+      doc.rect(cx, borderY, mColW, colGridH);
     }
 
   }
@@ -4001,15 +4003,17 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
     };
 
     var opts = ['A', 'B', 'C', 'D'];
-    var leftSpace = 7; // Reserved for question number
-    var rightPadding = 4; // Increased to 4 to prevent touching the border
-    var activeWidth = availWidth - leftSpace - rightPadding;
-    var optGap = activeWidth / (opts.length - 1); // Space between bubble centers
-    var startOptX = x + leftSpace; // Center of the first bubble (well, center-ish if we use obx)
-    // Adjusting startOptX to be the center of the first bubble
-    // Actually, let's spread them across the active width
+
+    // Add some padding inside the column border
+    var colLeftPadding = 2.5; // Space between left border and numbers
+
+    var leftSpace = 6.5; // Reduced from 8.0: Space between numbers and first bubble
+    var rightPadding = 3.8; // Increased from 3.0: Space between last bubble and right border
+    var activeWidth = availWidth - colLeftPadding - leftSpace - rightPadding;
+
+    // Distribute bubbles across activeWidth
     var step = activeWidth / (opts.length - 1);
-    var startX = x + leftSpace;
+    var startX = x + colLeftPadding + leftSpace;
 
     for (var i = 1; i <= count; i++) {
       var rowY = y + (i - 1) * rGap;
@@ -4023,20 +4027,20 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
       // Question number
       doc.setFontSize(6.5);
       setFont('bold');
-      doc.setTextColor(0); // Black like TYT
-      doc.text(String(i), x + 1.5, rowY + 1.5);
+      doc.setTextColor(pR, pG, pB); // Pink like bubbles
+      doc.text(String(i), x + colLeftPadding, rowY + 0.1, { baseline: 'middle' });
 
       // Bubbles
       for (var o = 0; o < opts.length; o++) {
         var obx = startX + o * step;
         doc.setDrawColor(pR, pG, pB);
         doc.setLineWidth(0.3); // Standardized thickness
-        doc.circle(obx, rowY, 1.95, 'S'); // Make bubbles bigger (radius 1.95)
+        doc.circle(obx, rowY, 1.85, 'S'); // Make bubbles slightly smaller for more gap (radius 1.85)
 
         doc.setFontSize(6); // Bigger text inside bubbles
         setFont('bold');
         doc.setTextColor(pR, pG, pB);
-        doc.text(opts[o], obx, rowY + 0.65, { align: 'center' }); // Automatically center
+        doc.text(opts[o], obx, rowY + 0.1, { align: 'center', baseline: 'middle' }); // Automatically center
       }
     }
   }
@@ -4407,9 +4411,9 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
         }
 
         // Q Num
-        doc.setTextColor(0);
+        doc.setTextColor(pR, pG, pB); // Pink like bubbles
         doc.setFontSize(5.5); // Slightly larger
-        doc.text(String(q), cx + 1.5, qy + 1.5);
+        doc.text(String(q), cx + 1.5, qy + 0.1, { baseline: 'middle' });
 
         // Bubbles A-E
         var opts = ['A', 'B', 'C', 'D', 'E'];
@@ -4422,7 +4426,7 @@ var QRCode; !function () { function a(a) { this.mode = c.MODE_8BIT_BYTE, this.da
           doc.circle(obx, qy, 1.75, 'S'); // Make bubbles bigger (radius from 1.5 to 1.75)
           doc.setTextColor(pR, pG, pB);
           doc.setFontSize(5.5); // Bigger text inside bubbles (from 4.5 to 5.5)
-          doc.text(opts[o], obx, qy + 0.65, { align: 'center' }); // Automatically center
+          doc.text(opts[o], obx, qy + 0.1, { align: 'center', baseline: 'middle' }); // Automatically center
         }
       }
 
