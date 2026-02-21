@@ -2051,31 +2051,27 @@
       if (window.fontRobotoRegular) doc.setFont('Roboto', style);
     };
     // Sola eklediğimiz ayar çizgilerine(timing marks) çarpmaması için 
-    // lgs iç şablon margin değerini tekrar 14 yapıyoruz ki çizgilerle çakışmasın.
-    var pageMargin = 14;
+    // sol margin değerini 14 yapıyoruz. Sağ tarafı ise sağa kaydırmak için daraltıyoruz.
+    var leftMargin = 14;
+    var rightMargin = 6;
     var pageWidth = 210;
 
-    // Sağ tarafta da aynı margin'i koruyoruz
-    var contentWidth = pageWidth - 2 * pageMargin; // 182
+    // İçerik genişliğini asimetrik marginlere göre hesaplıyoruz
+    var contentWidth = pageWidth - leftMargin - rightMargin; // 190
 
     // Split: SÖZEL (Left 4 cols) | SAYISAL (Right 2 cols)
-    // Sözel 4 columns
-    // Sayısal 2 columns
-
-    // Hem aralarda boşluk olsun hem de içeride baloncuklar ferah olsun diye
-    // bölen değerini 6.2 olarak ayarlıyoruz:
     var colW = contentWidth / 6.2;
     var sozelW = colW * 4;
     var sayisalW = colW * 2;
     var gap = contentWidth - sozelW - sayisalW;
 
-    var sayisalX = pageMargin + sozelW + gap;
+    var sayisalX = leftMargin + sozelW + gap;
 
     // Headers
     var headerH = 7;
     // SÖZEL Header
     doc.setFillColor(pR, pG, pB);
-    doc.rect(pageMargin, startY, sozelW, headerH, 'F');
+    doc.rect(leftMargin, startY, sozelW, headerH, 'F');
     doc.setTextColor(255);
     doc.setFontSize(10);
     setFont('bold');
@@ -2109,7 +2105,7 @@
     var sColW = (sozelW - 3 * sColGap) / 4;
 
     for (var i = 0; i < 4; i++) {
-      var cx = pageMargin + i * (sColW + sColGap);
+      var cx = leftMargin + i * (sColW + sColGap);
 
       // SubHeader
       doc.setFillColor(pR, pG, pB);
