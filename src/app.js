@@ -2258,7 +2258,7 @@
     doc.setTextColor(0);
 
     // 2. Bordered Box below header
-    var boxY = infoY + 8 + 2; // Added 2 unit gap
+    var boxY = infoY + 8 + 4; // Increased from 2 to 4
     var boxH = 28;
     doc.setDrawColor(pR, pG, pB);
     doc.setLineWidth(0.4);
@@ -2317,7 +2317,7 @@
 
     // ============ DİKKAT SECTION ============
     // Visual: Pink "DİKKAT" box left, then white box with "Yanlış kodlama" examples, then "Doğru kodlama" example, then text.
-    var dikkatY = boxY + boxH + 2; // Added 2 unit gap below info box
+    var dikkatY = boxY + boxH + 6; // Increased from 2 to 6 unit gap below info box
     var dikkatH = 9; // Increased height from 7 to 9
     var gapBetweenBoxes = 2; // Requested gap
 
@@ -2408,9 +2408,9 @@
 
     // ============ REFINED LAYOUT (BELOW DİKKAT) ============
     // Kitapçık Türü now below DİKKAT block. 
-    var leftStartY = dikkatY + dikkatH + 4; // Start below DİKKAT
-    // Görseldeki şikayete istinaden boşluğu daraltıyoruz (8+12 den 8+4 e düşürdük)
-    var rightStartY = leftStartY + 8 + 4;  // Reduced gap before Answer columns start
+    var leftStartY = dikkatY + dikkatH + 7; // Increased from 4 to 7 units below DİKKAT
+    // Görseldeki şikayete istinaden boşluğu artırıyoruz (8+4 ten 8+7 ye çıkardık)
+    var rightStartY = leftStartY + 8 + 7;  // Increased gap before Answer columns start
     drawRefinedTYTLayout(doc, leftStartY, rightStartY, pR, pG, pB, student);
 
 
