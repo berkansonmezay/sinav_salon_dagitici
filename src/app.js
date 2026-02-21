@@ -2584,10 +2584,10 @@
 
         // Bubbles A-E
         var opts = ['A', 'B', 'C', 'D', 'E'];
-        // Added 3 units of right padding so bubbles don't touch the right border
-        var optW = (ansColW - 6 - 3) / 5;
+        // Reduced paddings to bring bubbles closer to number and border
+        var optW = (ansColW - 5 - 1.5) / 5;
         for (var o = 0; o < 5; o++) {
-          var obx = cx + 6 + o * optW + optW / 2;
+          var obx = cx + 5 + o * optW + optW / 2;
           doc.setDrawColor(pR, pG, pB);
           doc.setLineWidth(0.3); // Standardized thickness
           doc.circle(obx, qy, 1.75, 'S'); // Make bubbles bigger (radius from 1.5 to 1.75)
